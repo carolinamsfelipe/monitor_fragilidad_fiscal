@@ -61,6 +61,43 @@ PROVINCIAS = sorted(panel_iffs["provincia"].unique())
 ANIOS = sorted(panel_iffs["anio"].unique())
 
 
+ETIQUETAS = {
+    "provincia": "Provincia", "anio": "Año", "IFFS_A": "IFFS-A", "IFFS_B": "IFFS-B", "IFFS_C": "IFFS-C",
+    "nivel_alerta": "Nivel de alerta", "perfil_nombre": "Perfil", "d_iffs_1a": "Δ IFFS-B (1 año)",
+    "d_iffs_3a": "Δ IFFS-B (3 años)", "dimension_motor": "Dimensión motor", "anomalia_score": "Puntaje de rareza",
+    "deuda_sobre_ingresos": "Deuda / Ingresos", "servicio_sobre_ingresos": "Servicio / Ingresos",
+    "rigidez_gastototal": "Rigidez del gasto", "fragilidad_resultado": "Fragilidad del resultado",
+    "nivel_anterior": "Nivel anterior",
+}
+DECIMALES = {
+    "IFFS_A": 0, "IFFS_B": 0, "IFFS_C": 0, "d_iffs_1a": 0, "d_iffs_3a": 0, "anomalia_score": 2,
+    "deuda_sobre_ingresos": 2, "servicio_sobre_ingresos": 3, "rigidez_gastototal": 2, "fragilidad_resultado": 3,
+}
+
+
+def vista(df: pd.DataFrame) -> pd.DataFrame:
+    """Versión para mostrar: nombres legibles (Año, Provincia...) y sin decimales innecesarios."""
+    df = df.copy()
+    for col, dec in DECIMALES.items():
+        if col in df.columns:
+            df[col] = df[col].round(dec)
+    return df.rename(columns=ETIQUETAS)
+
+
+GLOSARIO = """
+**IFFS = Índice de Fragilidad Fiscal Subnacional.** Va de 0 a 100 y compara a cada provincia-año con la
+historia de referencia 2005-2012 (percentil): **más alto = más frágil = menos margen para absorber un shock.**
+
+| Versión | Qué combina | Para qué sirve |
+|---|---|---|
+| **IFFS-A** | Solvencia (Deuda / Ingresos) + Liquidez (Servicio de deuda / Ingresos), con igual peso | Versión simple y parsimoniosa. Exige tener las 2 dimensiones. |
+| **IFFS-B** | Las 4 dimensiones con igual peso: solvencia, liquidez, **rigidez del gasto** (Personal / Gasto total) y **desempeño fiscal** (−Resultado / Ingresos) | **Índice principal**: lo usan el ranking, las alertas y los perfiles. Si falta una dimensión (CABA, sin servicio de deuda confiable) queda como *provisional*. |
+| **IFFS-C** | Primer componente principal (PCA) de las mismas 4 dimensiones; los pesos se estiman solo con datos 2005-2012 | Chequeo de robustez: pesos que salen de los datos en vez de fijarse a mano. |
+
+**Niveles de alerta (sobre IFFS-B):** Bajo < 33 · Medio 33-66 · Alto 66-85 · Crítico ≥ 85. Son cortes de lectura, no una calibración estadística.
+"""
+
+
 # ---------------------------------------------------------------------------
 # Sidebar — controles
 # ---------------------------------------------------------------------------
@@ -97,10 +134,9 @@ if avisos_validacion:
 panel_filtrado = panel_iffs[panel_iffs["anio"].between(*periodo)]
 
 st.title("Monitor de Fragilidad Fiscal Provincial")
-st.caption(
-    "Prototipo — Segundo Parcial, Programación para Economistas. "
-    "Herramienta de apoyo al análisis económico, **no** un mecanismo de predicción de default."
-)
+st.caption("Es solo **UNA** herramienta de apoyo al análisis económico, no un mecanismo de predicción de default.")
+with st.expander("ℹ️ ¿Qué significan IFFS-A, IFFS-B e IFFS-C?"):
+    st.markdown(GLOSARIO)
 
 (tab_ranking, tab_evolucion, tab_comparacion, tab_detalle,
  tab_perfiles, tab_alertas, tab_simulador, tab_datos) = st.tabs(
@@ -125,7 +161,8 @@ with tab_ranking:
             color_discrete_map={"Bajo": "#2E7D32", "Medio": "#F9A825", "Alto": "#EF6C00", "Crítico": "#C62828"},
             category_orders={"provincia": df_ranking["provincia"].tolist()[::-1]},
             title=f"Ranking de fragilidad fiscal (IFFS-B) — {anio_ranking}",
-            labels={"IFFS_B": "IFFS-B (0-100)", "provincia": "", "nivel_alerta": "Nivel de alerta"},
+            labels={"IFFS_B": "IFFS-B (0-100)", "provincia": "Provincia", "nivel_alerta": "Nivel de alerta"},
+            hover_data={"IFFS_B": ":.0f"},
         )
         fig.update_layout(height=650)
         st.plotly_chart(fig, width="stretch")
@@ -134,8 +171,9 @@ with tab_ranking:
         fig_heat = px.imshow(
             pivot, color_continuous_scale="RdYlGn_r", aspect="auto",
             title="Mapa de calor — IFFS-B por provincia y año",
-            labels={"color": "IFFS-B"},
+            labels={"x": "Año", "y": "Provincia", "color": "IFFS-B"},
         )
+        fig_heat.update_traces(hovertemplate="%{y}<br>Año %{x}<br>IFFS-B: %{z:.0f}<extra></extra>")
         fig_heat.update_layout(height=650)
         st.plotly_chart(fig_heat, width="stretch")
 
@@ -153,8 +191,10 @@ with tab_evolucion:
     df_prov = panel_iffs[(panel_iffs.provincia == provincia_foco) & (panel_iffs.anio.between(*periodo))]
 
     fig_evol = go.Figure()
-    for col, nombre in [("IFFS_A", "IFFS-A"), ("IFFS_B", "IFFS-B"), ("IFFS_C", "IFFS-C")]:
-        fig_evol.add_trace(go.Scatter(x=df_prov["anio"], y=df_prov[col], mode="lines+markers", name=nombre))
+    for col, nombre in [("IFFS_A", "IFFS-A (deuda + servicio)"), ("IFFS_B", "IFFS-B (4 dimensiones, principal)"),
+                        ("IFFS_C", "IFFS-C (componente principal / PCA)")]:
+        fig_evol.add_trace(go.Scatter(x=df_prov["anio"], y=df_prov[col], mode="lines+markers", name=nombre,
+                                      hovertemplate="Año %{x}: %{y:.0f}<extra>%{fullData.name}</extra>"))
     fig_evol.add_vrect(x0=2020, x1=2021, fillcolor="grey", opacity=0.15, line_width=0, annotation_text="Shock COVID-19")
     fig_evol.update_layout(
         title=f"Evolución de las tres especificaciones del IFFS — {provincia_foco}",
@@ -169,7 +209,8 @@ with tab_evolucion:
         ("servicio_sobre_ingresos", "Servicio deuda / Ingresos"),
         ("rigidez_gastototal", "Personal / Gasto total"),
     ]:
-        fig_ratios.add_trace(go.Scatter(x=df_prov["anio"], y=df_prov[col], mode="lines+markers", name=nombre))
+        fig_ratios.add_trace(go.Scatter(x=df_prov["anio"], y=df_prov[col], mode="lines+markers", name=nombre,
+                                        hovertemplate="Año %{x}: %{y:.2f}<extra>%{fullData.name}</extra>"))
     fig_ratios.update_layout(xaxis_title="Año", yaxis_title="Ratio (veces)", height=380)
     st.plotly_chart(fig_ratios, width="stretch")
 
@@ -197,6 +238,7 @@ with tab_comparacion:
             df_comp, x="anio", y="IFFS_B", color="provincia", markers=True,
             title="IFFS-B — comparación entre provincias seleccionadas",
             labels={"IFFS_B": "IFFS-B (0-100)", "anio": "Año", "provincia": "Provincia"},
+            hover_data={"IFFS_B": ":.0f"},
         )
         fig_comp.add_vrect(x0=2020, x1=2021, fillcolor="grey", opacity=0.15, line_width=0)
         fig_comp.update_layout(height=450)
@@ -206,7 +248,7 @@ with tab_comparacion:
         snapshot = df_comp[df_comp.anio == anio_snapshot][
             ["provincia", "IFFS_B", "nivel_alerta", "deuda_sobre_ingresos", "servicio_sobre_ingresos"]
         ].sort_values("IFFS_B", ascending=False)
-        st.dataframe(snapshot, width="stretch", hide_index=True)
+        st.dataframe(vista(snapshot), width="stretch", hide_index=True)
 
 # ---------------------------------------------------------------------------
 # Tab 4: Detalle y explicación automática
@@ -230,8 +272,9 @@ with tab_detalle:
             descomp, x="percentil", y="dimension", orientation="h",
             range_x=[0, 100],
             title=f"Descomposición del IFFS-B — {provincia_foco} ({anio_detalle})",
-            labels={"percentil": "Percentil (0-100, vs. ventana base 2005-2012)", "dimension": ""},
+            labels={"percentil": "Percentil (0-100, vs. ventana base 2005-2012)", "dimension": "Dimensión"},
         )
+        fig_desc.update_traces(hovertemplate="%{y}: percentil %{x:.0f}<extra></extra>")
         st.plotly_chart(fig_desc, width="stretch")
 
         st.markdown("### 🗣️ Análisis exhaustivo automático")
@@ -251,6 +294,7 @@ with tab_detalle:
                                        fill="toself", fillcolor="rgba(120,120,120,0.2)", line=dict(width=0), name="Banda ~80%"))
             fig_p.update_layout(title="Proyección exploratoria a 2 años (no es un pronóstico validado)",
                                 xaxis_title="Año", yaxis_title="IFFS-B (0-100)", height=380)
+            fig_p.update_traces(hovertemplate="Año %{x}: %{y:.0f}<extra>%{fullData.name}</extra>")
             st.plotly_chart(fig_p, width="stretch")
 
 # ---------------------------------------------------------------------------
@@ -274,12 +318,12 @@ with tab_perfiles:
     with col_b:
         tabla_perfil = panel_iffs[panel_iffs["anio"] == anio_perfil][["provincia", "perfil_nombre", "IFFS_B", "nivel_alerta"]]\
             .sort_values(["perfil_nombre", "IFFS_B"], ascending=[True, False])
-        st.dataframe(tabla_perfil, width="stretch", hide_index=True, height=420)
+        st.dataframe(vista(tabla_perfil), width="stretch", hide_index=True, height=420)
 
     st.markdown("**Observaciones inusuales (Isolation Forest, descriptivo):**")
     anom = panel_iffs[panel_iffs["anomalia"]].sort_values("anomalia_score", ascending=False)[
         ["provincia", "anio", "IFFS_B", "d_iffs_1a", "nivel_alerta", "anomalia_score"]]
-    st.dataframe(anom, width="stretch", hide_index=True)
+    st.dataframe(vista(anom), width="stretch", hide_index=True)
     st.caption("Marca el ~4% de observaciones con combinaciones o saltos poco frecuentes. Es una señal para revisar, no un veredicto.")
 
 # ---------------------------------------------------------------------------
@@ -308,15 +352,19 @@ with tab_alertas:
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("**Mayor deterioro (Δ IFFS-B, 1 año)**")
-        st.dataframe(cambios.head(6)[["provincia", "IFFS_B", "d_iffs_1a", "nivel_alerta", "dimension_motor"]],
+        st.dataframe(vista(cambios.head(6)[["provincia", "IFFS_B", "d_iffs_1a", "nivel_alerta", "dimension_motor"]]),
                      width="stretch", hide_index=True)
     with c2:
         st.markdown("**Mayor mejora**")
-        st.dataframe(cambios.tail(6).iloc[::-1][["provincia", "IFFS_B", "d_iffs_1a", "nivel_alerta", "dimension_motor"]],
+        st.dataframe(vista(cambios.tail(6).iloc[::-1][["provincia", "IFFS_B", "d_iffs_1a", "nivel_alerta", "dimension_motor"]]),
                      width="stretch", hide_index=True)
-    fig_ch = px.bar(cambios.sort_values("d_iffs_1a"), x="d_iffs_1a", y="provincia", orientation="h",
+    d_ch = cambios.sort_values("d_iffs_1a").copy()
+    d_ch["etiqueta"] = d_ch["d_iffs_1a"].map(lambda v: "0" if round(v) == 0 else f"{v:+.0f}")  # evita "-0" / "+0"
+    fig_ch = px.bar(d_ch, x="d_iffs_1a", y="provincia", orientation="h", text="etiqueta", custom_data=["etiqueta"],
                     color="d_iffs_1a", color_continuous_scale="RdYlGn_r", color_continuous_midpoint=0,
-                    title=f"Variación del IFFS-B respecto de {anio_alerta - 1}", labels={"d_iffs_1a": "Δ puntos", "provincia": ""})
+                    title=f"Variación del IFFS-B respecto de {anio_alerta - 1}",
+                    labels={"d_iffs_1a": "Δ puntos", "provincia": "Provincia"})
+    fig_ch.update_traces(hovertemplate="%{y}: %{customdata[0]} puntos<extra></extra>", textposition="outside")
     fig_ch.update_layout(height=620, coloraxis_showscale=False)
     st.plotly_chart(fig_ch, width="stretch")
     st.caption("Δ = IFFS-B(t) − IFFS-B(t−1). \"Motor\" = la dimensión cuyo percentil más se movió. "
@@ -348,7 +396,8 @@ with tab_simulador:
             "Escenario": list(r["percentiles_escenario"].values()),
         }).melt(id_vars="Dimensión", var_name="Situación", value_name="Percentil")
         fig_s = px.bar(dims, x="Percentil", y="Dimensión", color="Situación", barmode="group", orientation="h", range_x=[0, 100],
-                       title="Percentil por dimensión: base vs. escenario")
+                       title="Percentil por dimensión: base vs. escenario", text_auto=".0f")
+        fig_s.update_traces(hovertemplate="%{y} (%{fullData.name}): percentil %{x:.0f}<extra></extra>")
         st.plotly_chart(fig_s, width="stretch")
         rat = r["ratios"]
         st.write(f"Deuda/Ingresos: **{rat['deuda_sobre_ingresos'][0]:.2f}x → {rat['deuda_sobre_ingresos'][1]:.2f}x**")
@@ -367,10 +416,10 @@ with tab_datos:
         "rigidez_gastototal", "fragilidad_resultado", "IFFS_A", "IFFS_B", "IFFS_C", "nivel_alerta",
     ]
     tabla = panel_filtrado[columnas_mostrar].sort_values(["provincia", "anio"])
-    st.dataframe(tabla, width="stretch", hide_index=True)
+    st.dataframe(vista(tabla), width="stretch", hide_index=True)
     st.download_button(
         "⬇️ Descargar tabla filtrada (CSV)",
-        data=tabla.to_csv(index=False).encode("utf-8"),
+        data=vista(tabla).to_csv(index=False).encode("utf-8-sig"),
         file_name=f"iffs_filtrado_{periodo[0]}_{periodo[1]}.csv",
         mime="text/csv",
     )
