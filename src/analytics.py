@@ -60,8 +60,8 @@ def ajustar_perfiles(panel: pd.DataFrame, ks=(3, 4, 5)) -> tuple[pd.DataFrame, d
     (2005-2012), elige k por silhouette y asigna un perfil a cada observación
     completa (las 4 dimensiones disponibles) de todos los años.
 
-    Observaciones con alguna dimensión faltante (p. ej. CABA, sin servicio de deuda
-    confiable) quedan sin perfil: no se imputan.
+    Observaciones con alguna dimensión faltante (p. ej. La Pampa 2025, sin datos reportados) quedan sin perfil:
+    no se imputan.
     """
     panel = panel.copy()
     completo = panel[COLS_P].notna().all(axis=1)
@@ -337,7 +337,7 @@ def generar_analisis(panel: pd.DataFrame, provincia: str, anio: int, eventos: pd
     )
     if f["IFFS_B_estado"] != "completo":
         partes[-1] += (" El índice es **provisional**: falta una de las cuatro dimensiones "
-                       "(servicio de deuda no confiable), por lo que no es plenamente comparable.")
+                       "(dato no disponible), por lo que no es plenamente comparable con las demás.")
 
     # 2. Qué lo explica
     percs = f[COLS_P].dropna().sort_values(ascending=False)

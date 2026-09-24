@@ -46,6 +46,7 @@ import pandas as pd
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT_DIR / "data" / "raw" / "base_investigacion"
+DNAP_DIR = ROOT_DIR / "data" / "raw" / "fuentes_dnap"
 PROCESSED_DIR = ROOT_DIR / "data" / "processed"
 
 PROVINCIAS_24 = [
@@ -122,12 +123,56 @@ def load_deuda_ratios(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
     df["provincia"] = _normalizar_provincia(df["provincia"])
     df["anio"] = df["anio"].astype(int)
     df["servicio_confiable"] = df["servicio_confiable"].astype(bool)
-    # CABA: el servicio de deuda no reconcilia con el consolidado oficial (ver
-    # 07-auditoria-deuda-provincial.md de la investigación original). Se fuerza
-    # a NaN explícitamente en vez de dejar un número que se sabe incorrecto.
+    df = _corregir_servicio_caba(df)
+    # Cualquier otra observación marcada como no confiable se anula explícitamente (no se deja un número dudoso).
     mask_no_confiable = ~df["servicio_confiable"]
     df.loc[mask_no_confiable, "servicio_sobre_ingresos"] = np.nan
     df.loc[mask_no_confiable, "servicio_total"] = np.nan
+    return df
+
+
+def cargar_servicio_caba_millones(dnap_dir: Path = DNAP_DIR) -> pd.Series:
+    """
+    Servicio de deuda de CABA (amortización + interés, millones de pesos corrientes) leído de la hoja `Millones`
+    del archivo de la DNAP.
+
+    CORRECCIÓN DE UN ERROR DE UNIDADES (auditoría Fase 1, hallazgo H1): el pipeline original leía la primera hoja
+    (`CABA`, expresada en MILES de pesos) y la trataba como millones, inflando el servicio x1000 y llevando a
+    excluir a CABA del índice. La hoja `Millones` es la misma información en millones.
+
+    Se suman las 8 categorías de acreedor (mismo criterio que para las otras 23 provincias) y se EXCLUYE la
+    columna `TOTAL (5)` para no duplicar. Se valida contra la hoja en miles: el cociente debe ser exactamente 1000.
+    """
+    archivo = dnap_dir / "servicio_caba.xlsx"
+    def _leer(hoja):
+        raw = pd.read_excel(archivo, sheet_name=hoja, header=None)
+        categorias = raw.iloc[5, 2:].ffill().astype(str).str.strip().str.upper()
+        cuerpo = raw.iloc[7:, 1:]
+        cuerpo = cuerpo[pd.to_numeric(cuerpo.iloc[:, 0], errors="coerce").between(2000, 2100)]
+        anios = cuerpo.iloc[:, 0].astype(int).to_numpy()
+        vals = cuerpo.iloc[:, 1:].apply(pd.to_numeric, errors="coerce")
+        vals.columns = categorias.to_numpy()[: vals.shape[1]]
+        vals = vals.loc[:, [not c.startswith("TOTAL") for c in vals.columns]]
+        return vals.sum(axis=1).set_axis(anios)
+
+    millones, miles = _leer("Millones"), _leer("CABA")
+    cociente = (miles / millones).round(3)
+    if not (cociente == 1000).all():
+        raise ValueError(f"Las hojas 'CABA' (miles) y 'Millones' de CABA no son consistentes: {cociente.unique()}")
+    return millones.rename("servicio_total")
+
+
+def _corregir_servicio_caba(df: pd.DataFrame) -> pd.DataFrame:
+    """Reemplaza el servicio de CABA por el valor corregido en millones y lo marca como confiable."""
+    df = df.copy()
+    es_caba = df["provincia"] == CABA_LABEL
+    if not es_caba.any() or not (DNAP_DIR / "servicio_caba.xlsx").exists():
+        return df  # sin la fuente primaria disponible se conserva el tratamiento previo (CABA anulada)
+    serv = cargar_servicio_caba_millones()
+    nuevo = df.loc[es_caba, "anio"].map(serv)
+    df.loc[es_caba, "servicio_total"] = nuevo
+    df.loc[es_caba, "servicio_sobre_ingresos"] = _safe_divide(nuevo, df.loc[es_caba, "ingresos_corrientes"])
+    df.loc[es_caba, "servicio_confiable"] = nuevo.notna()
     return df
 
 
@@ -241,8 +286,15 @@ def validar_panel_maestro(panel: pd.DataFrame) -> list[str]:
         if fuera_rango:
             avisos.append(f"{fuera_rango} valores fuera de [0,100] en '{col}'.")
 
-    caba_servicio = panel.loc[panel["provincia"] == CABA_LABEL, "servicio_sobre_ingresos"]
-    if caba_servicio.notna().any():
-        avisos.append("CABA tiene valores de servicio_sobre_ingresos no nulos: revisar exclusión.")
+    altos = panel[panel["deuda_sobre_ingresos"] > 5]
+    if not altos.empty:
+        avisos.append(f"{len(altos)} observaciones con Deuda/Ingresos > 5x ({', '.join(sorted(altos['provincia'].unique()))}): "
+                      "posible error de unidades en la fuente (ver docs/FASE1_AUDITORIA.md).")
+    serv = panel["servicio_sobre_ingresos"].dropna()
+    implausibles = int((serv > 0.5).sum())
+    if implausibles:
+        avisos.append(f"{implausibles} observaciones con servicio/ingresos > 50%: posible error de unidades, revisar.")
+    if panel.loc[panel["provincia"] == CABA_LABEL, "servicio_sobre_ingresos"].isna().all():
+        avisos.append("CABA sin servicio de deuda: no se encontró la fuente `data/raw/fuentes_dnap/servicio_caba.xlsx`.")
 
     return avisos
