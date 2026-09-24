@@ -30,6 +30,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from src import data_processing as dp
 from src import indicators as ind
 from src import modeling as mdl
+from src import analytics as an
 
 st.set_page_config(
     page_title="Monitor de Fragilidad Fiscal Provincial",
@@ -47,39 +48,17 @@ def cargar_datos():
     panel = dp.construir_panel_maestro()
     avisos = dp.validar_panel_maestro(panel)
     panel_iffs, meta = ind.construir_iffs(panel)
-    panel_iffs["nivel_alerta"] = ind.asignar_nivel_alerta(panel_iffs["IFFS_B"])
+    panel_iffs, info_perfiles = an.construir_panel_analitico(panel_iffs)  # + nivel de alerta, perfiles, cambios, anomalías
     eventos = dp.load_eventos_estres()
     panel_target = mdl.construir_target_estres(panel_iffs, eventos)
-    return panel_iffs, meta, avisos, eventos, panel_target
+    backtest = an.backtest_proyeccion(panel_iffs)
+    return panel_iffs, meta, avisos, eventos, panel_target, info_perfiles, backtest
 
 
-panel_iffs, meta_iffs, avisos_validacion, eventos, panel_target = cargar_datos()
+panel_iffs, meta_iffs, avisos_validacion, eventos, panel_target, info_perfiles, backtest_proy = cargar_datos()
 
 PROVINCIAS = sorted(panel_iffs["provincia"].unique())
 ANIOS = sorted(panel_iffs["anio"].unique())
-
-
-def explicar_alerta(provincia: str, anio: int) -> str:
-    fila = panel_iffs[(panel_iffs.provincia == provincia) & (panel_iffs.anio == anio)]
-    if fila.empty or pd.isna(fila["IFFS_B"].iloc[0]):
-        return f"No hay datos suficientes para **{provincia}** en **{anio}**."
-    fila = fila.iloc[0]
-    nivel = fila["nivel_alerta"]
-    descomp = ind.descomponer_contribucion(fila)
-    principal = descomp.iloc[0]
-    secundaria = descomp.iloc[1]
-    return (
-        f"**{provincia} ({anio})** — nivel de alerta **{nivel}** "
-        f"(IFFS-B = {fila['IFFS_B']:.1f} sobre 100).\n\n"
-        f"La dimensión que más empuja el resultado es **{principal['dimension']}** "
-        f"(percentil {principal['percentil']:.0f} respecto de la ventana histórica base "
-        f"2005-2012), seguida por **{secundaria['dimension']}** "
-        f"(percentil {secundaria['percentil']:.0f}).\n\n"
-        f"Esta lectura es **relativa** a la historia reciente de las 24 provincias "
-        f"argentinas, no una probabilidad estimada de default. El análisis de "
-        f"validación del proyecto (ver notebook) muestra que el índice no tiene, "
-        f"con la evidencia disponible, capacidad de anticipación confiable."
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -123,8 +102,10 @@ st.caption(
     "Herramienta de apoyo al análisis económico, **no** un mecanismo de predicción de default."
 )
 
-tab_ranking, tab_evolucion, tab_comparacion, tab_detalle, tab_datos = st.tabs(
-    ["🏆 Ranking / mapa", "📈 Evolución histórica", "⚖️ Comparación", "🔎 Detalle y explicación", "📥 Datos"]
+(tab_ranking, tab_evolucion, tab_comparacion, tab_detalle,
+ tab_perfiles, tab_alertas, tab_simulador, tab_datos) = st.tabs(
+    ["🏆 Ranking / mapa", "📈 Evolución histórica", "⚖️ Comparación", "🔎 Detalle y análisis",
+     "🧩 Perfiles (ML)", "🚨 Alertas y cambios", "🎛️ Simulador", "📥 Datos"]
 )
 
 # ---------------------------------------------------------------------------
@@ -253,11 +234,131 @@ with tab_detalle:
         )
         st.plotly_chart(fig_desc, width="stretch")
 
-        st.markdown("### 🗣️ Explicación automática")
-        st.info(explicar_alerta(provincia_foco, anio_detalle))
+        st.markdown("### 🗣️ Análisis exhaustivo automático")
+        st.caption("Generado por reglas transparentes sobre resultados de ML (k-means, Isolation Forest, tendencia). "
+                   "No usa IA generativa ni APIs: solo redacta cifras efectivamente calculadas.")
+        st.markdown(an.generar_analisis(panel_iffs, provincia_foco, anio_detalle, eventos, info_perfiles, backtest_proy))
+
+        proy = an.proyectar_iffs(panel_iffs[panel_iffs["anio"] <= anio_detalle], provincia_foco)
+        if not proy.empty:
+            hist = panel_iffs[(panel_iffs.provincia == provincia_foco) & (panel_iffs.anio <= anio_detalle)]
+            fig_p = go.Figure()
+            fig_p.add_trace(go.Scatter(x=hist["anio"], y=hist["IFFS_B"], mode="lines+markers", name="IFFS-B observado"))
+            fig_p.add_trace(go.Scatter(x=proy["anio"], y=proy["proyeccion"], mode="lines+markers", name="Proyección (tendencia)",
+                                       line=dict(dash="dash")))
+            fig_p.add_trace(go.Scatter(x=list(proy["anio"]) + list(proy["anio"])[::-1],
+                                       y=list(proy["superior"]) + list(proy["inferior"])[::-1],
+                                       fill="toself", fillcolor="rgba(120,120,120,0.2)", line=dict(width=0), name="Banda ~80%"))
+            fig_p.update_layout(title="Proyección exploratoria a 2 años (no es un pronóstico validado)",
+                                xaxis_title="Año", yaxis_title="IFFS-B (0-100)", height=380)
+            st.plotly_chart(fig_p, width="stretch")
 
 # ---------------------------------------------------------------------------
-# Tab 5: Datos y descarga
+# Tab 5: Perfiles (k-means) y anomalías
+# ---------------------------------------------------------------------------
+with tab_perfiles:
+    st.subheader("Perfiles fiscales (k-means)")
+    st.caption(
+        f"Agrupa observaciones según *qué dimensiones* pesan, no solo su nivel. k={info_perfiles['k']} elegido por silhouette "
+        f"({info_perfiles['silhouette']:.2f}, estructura moderada) y ajustado solo con la ventana 2005-2012, para no usar "
+        "información futura. CABA queda sin perfil (falta servicio de deuda confiable; no se imputan datos)."
+    )
+    anio_perfil = st.select_slider("Año", options=sorted(ANIOS), value=max(ANIOS), key="anio_perfil")
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        cent = info_perfiles["centroides"].copy()
+        cent.index = [info_perfiles["nombres"][i] for i in cent.index]
+        fig_c = px.imshow(cent.round(0), color_continuous_scale="RdYlGn_r", zmin=0, zmax=100, aspect="auto", text_auto=True,
+                          title="Centroides: percentil típico de cada perfil por dimensión")
+        st.plotly_chart(fig_c, width="stretch")
+    with col_b:
+        tabla_perfil = panel_iffs[panel_iffs["anio"] == anio_perfil][["provincia", "perfil_nombre", "IFFS_B", "nivel_alerta"]]\
+            .sort_values(["perfil_nombre", "IFFS_B"], ascending=[True, False])
+        st.dataframe(tabla_perfil, width="stretch", hide_index=True, height=420)
+
+    st.markdown("**Observaciones inusuales (Isolation Forest, descriptivo):**")
+    anom = panel_iffs[panel_iffs["anomalia"]].sort_values("anomalia_score", ascending=False)[
+        ["provincia", "anio", "IFFS_B", "d_iffs_1a", "nivel_alerta", "anomalia_score"]]
+    st.dataframe(anom, width="stretch", hide_index=True)
+    st.caption("Marca el ~4% de observaciones con combinaciones o saltos poco frecuentes. Es una señal para revisar, no un veredicto.")
+
+# ---------------------------------------------------------------------------
+# Tab 6: Alertas y cambios
+# ---------------------------------------------------------------------------
+with tab_alertas:
+    st.subheader("Alertas tempranas: qué cambió")
+    anio_alerta = st.select_slider("Año a analizar", options=sorted(ANIOS)[1:], value=max(ANIOS), key="anio_alerta")
+    cambios = an.ranking_cambios(panel_iffs, anio_alerta)
+    empeoraron = cambios[cambios["cambio_nivel"] == "Empeoró"]
+    if not empeoraron.empty:
+        st.error("**Subieron de nivel de alerta:** " + "; ".join(
+            f"{r.provincia} ({r.nivel_anterior} → {r.nivel_alerta}, {r.d_iffs_1a:+.1f} pts, motor: {r.dimension_motor})"
+            for r in empeoraron.itertuples()))
+    else:
+        st.success("Ninguna jurisdicción subió de nivel de alerta este año.")
+    n_emp = int((cambios["d_iffs_1a"] > 0).sum())
+    med = lambda y: panel_iffs.loc[panel_iffs["anio"] == y, "D_resultado_fiscal_pct_ingresos"].median() * 100
+    if n_emp >= 0.75 * len(cambios):
+        st.warning(
+            f"**Ojo con la lectura:** {n_emp} de {len(cambios)} jurisdicciones empeoran a la vez, lo que apunta a un movimiento común "
+            f"y no a {n_emp} problemas individuales. La mediana de resultado/ingresos pasó de {med(anio_alerta - 1):+.1f}% a "
+            f"{med(anio_alerta):+.1f}%: buena parte del cambio viene del resultado fiscal (un año previo atípico) y no de la deuda. "
+            "Los datos del último año pueden ser preliminares."
+        )
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**Mayor deterioro (Δ IFFS-B, 1 año)**")
+        st.dataframe(cambios.head(6)[["provincia", "IFFS_B", "d_iffs_1a", "nivel_alerta", "dimension_motor"]],
+                     width="stretch", hide_index=True)
+    with c2:
+        st.markdown("**Mayor mejora**")
+        st.dataframe(cambios.tail(6).iloc[::-1][["provincia", "IFFS_B", "d_iffs_1a", "nivel_alerta", "dimension_motor"]],
+                     width="stretch", hide_index=True)
+    fig_ch = px.bar(cambios.sort_values("d_iffs_1a"), x="d_iffs_1a", y="provincia", orientation="h",
+                    color="d_iffs_1a", color_continuous_scale="RdYlGn_r", color_continuous_midpoint=0,
+                    title=f"Variación del IFFS-B respecto de {anio_alerta - 1}", labels={"d_iffs_1a": "Δ puntos", "provincia": ""})
+    fig_ch.update_layout(height=620, coloraxis_showscale=False)
+    st.plotly_chart(fig_ch, width="stretch")
+    st.caption("Δ = IFFS-B(t) − IFFS-B(t−1). \"Motor\" = la dimensión cuyo percentil más se movió. "
+               "Variaciones grandes pueden deberse a cambios en un solo componente (p. ej. el resultado fiscal).")
+
+# ---------------------------------------------------------------------------
+# Tab 7: Simulador de escenarios
+# ---------------------------------------------------------------------------
+with tab_simulador:
+    st.subheader(f"Simulador de escenarios — {provincia_foco}")
+    st.caption("Sensibilidad **mecánica** del IFFS-B ante shocks sobre el año elegido. No es un pronóstico: "
+               "mantiene constante el gasto y compara contra la misma escala base 2005-2012.")
+    anio_sim = st.select_slider("Año base", options=sorted(ANIOS), value=max(ANIOS), key="anio_sim")
+    s1, s2, s3 = st.columns(3)
+    caida = s1.slider("Caída de ingresos corrientes (%)", 0, 40, 10)
+    deprec = s2.slider("Depreciación del peso (%)", 0, 200, 0, help="Solo afecta a provincias con dato de composición por moneda (último dato 2014-2020).")
+    serv = s3.slider("Suba del servicio de deuda (%)", 0, 100, 0, help="Cota superior: se aplica al servicio total (capital + interés).")
+    r = an.simular_escenario(panel_iffs, provincia_foco, anio_sim, caida / 100, deprec / 100, serv / 100)
+    if "error" in r or pd.isna(r.get("iffs_base")):
+        st.warning("No hay datos suficientes para simular esta provincia y año.")
+    else:
+        m1, m2, m3 = st.columns(3)
+        m1.metric("IFFS-B base", f"{r['iffs_base']:.1f}", r["nivel_base"])
+        m2.metric("IFFS-B escenario", f"{r['iffs_escenario']:.1f}", f"{r['delta']:+.1f} pts", delta_color="inverse")
+        m3.metric("Nivel de alerta", r["nivel_escenario"], "sin cambio" if r["nivel_escenario"] == r["nivel_base"] else f"desde {r['nivel_base']}", delta_color="off")
+        dims = pd.DataFrame({
+            "Dimensión": [NOMBRE for NOMBRE in an.NOMBRE_DIM.values()],
+            "Base": list(r["percentiles_base"].values()),
+            "Escenario": list(r["percentiles_escenario"].values()),
+        }).melt(id_vars="Dimensión", var_name="Situación", value_name="Percentil")
+        fig_s = px.bar(dims, x="Percentil", y="Dimensión", color="Situación", barmode="group", orientation="h", range_x=[0, 100],
+                       title="Percentil por dimensión: base vs. escenario")
+        st.plotly_chart(fig_s, width="stretch")
+        rat = r["ratios"]
+        st.write(f"Deuda/Ingresos: **{rat['deuda_sobre_ingresos'][0]:.2f}x → {rat['deuda_sobre_ingresos'][1]:.2f}x**")
+        if r["fx_solicitado_sin_dato"]:
+            st.warning("Esta provincia no tiene composición de deuda por moneda en la base: la depreciación no se aplicó.")
+        elif r["fx_aplicado"]:
+            st.info(f"Depreciación aplicada con {r['fx_share']*100:.0f}% de deuda en moneda extranjera (último dato: {r['fx_anio']}).")
+
+# ---------------------------------------------------------------------------
+# Tab 8: Datos y descarga
 # ---------------------------------------------------------------------------
 with tab_datos:
     st.subheader("Tabla filtrada")

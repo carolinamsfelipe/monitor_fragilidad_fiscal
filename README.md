@@ -28,6 +28,7 @@ parcial2_monitor_fragilidad_fiscal/
 │   ├── data_processing.py             <- carga, validación, panel maestro
 │   ├── indicators.py                  <- construcción del índice IFFS
 │   ├── modeling.py                    <- alertas por reglas + modelo exploratorio
+│   ├── analytics.py                   <- IA sin costo: perfiles, anomalías, proyección, simulador, análisis automático
 │   └── visualization.py               <- gráficos reutilizables
 ├── outputs/
 │   ├── figures/                       <- figuras generadas automáticamente
@@ -134,6 +135,17 @@ resultados se presentan como exploratorios (ver Secciones 12-13 del
 notebook). El hallazgo más sólido es descriptivo: en 2019, las provincias que
 luego reestructuraron ya tenían deuda y servicio de deuda sobre ingresos
 claramente más altos que el resto (AUC descriptiva ≈ 0.97).
+
+## 5b. Capa de IA sin costo (Sección 15b del notebook)
+
+Machine learning clásico (scikit-learn), sin APIs ni claves ni costo, reproducible con semilla fija:
+
+- **Perfiles fiscales (k-means)**, ajustados solo con la ventana 2005-2012 (silhouette ≈ 0.29: estructura moderada).
+- **Anomalías (Isolation Forest)**: descriptivo, no predictivo.
+- **Proyección por tendencia + backtest**: en el backtest a 1 año **no supera** a repetir el último valor (se informa tal cual).
+- **Simulador de escenarios**: caída de ingresos, depreciación y suba del servicio (sensibilidad mecánica, no pronóstico).
+- **Alertas y cambios** interanuales, con aviso cuando casi todas las provincias se mueven juntas.
+- **Análisis exhaustivo automático**: motor de reglas que redacta solo cifras calculadas (no es IA generativa).
 
 ## 6. Tabla de control — criterios de evaluación
 
