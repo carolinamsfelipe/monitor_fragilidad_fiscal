@@ -91,7 +91,7 @@ historia de referencia 2005-2012 (percentil): **más alto = más frágil = menos
 | Versión | Qué combina | Para qué sirve |
 |---|---|---|
 | **IFFS-A** | Solvencia (Deuda / Ingresos) + Liquidez (Servicio de deuda / Ingresos), con igual peso | Versión simple y parsimoniosa. Exige tener las 2 dimensiones. |
-| **IFFS-B** | Las 4 dimensiones con igual peso: solvencia, liquidez, **rigidez del gasto** (Personal / Gasto total) y **desempeño fiscal** (−Resultado / Ingresos) | **Índice principal**: lo usan el ranking, las alertas y los perfiles. Si falta una dimensión (CABA, sin servicio de deuda confiable) queda como *provisional*. |
+| **IFFS-B** | Las 4 dimensiones con igual peso: solvencia, liquidez, **rigidez del gasto** (Personal / Gasto total) y **desempeño fiscal** (−Resultado / Ingresos) | **Índice principal**: lo usan el ranking, las alertas y los perfiles. Si falta alguna dimensión queda como *provisional*. |
 | **IFFS-C** | Primer componente principal (PCA) de las mismas 4 dimensiones; los pesos se estiman solo con datos 2005-2012 | Chequeo de robustez: pesos que salen de los datos en vez de fijarse a mano. |
 
 **Niveles de alerta (sobre IFFS-B):** Bajo < 33 · Medio 33-66 · Alto 66-85 · Crítico ≥ 85. Son cortes de lectura, no una calibración estadística.
@@ -120,8 +120,7 @@ with st.sidebar.expander("ℹ️ Sobre el índice y sus límites"):
         "gasto y desempeño fiscal, normalizadas por percentil sobre una ventana "
         "base fija (2005-2012). Los umbrales de alerta (33/66/85) son una "
         "convención expositiva, **no** una calibración estadística contra "
-        "episodios reales de default. CABA no tiene servicio de deuda "
-        "confiable (excluida de ese componente). Ver el notebook para el "
+        "episodios reales de default. Ver el notebook para el "
         "detalle metodológico completo y sus limitaciones."
     )
 
@@ -305,7 +304,7 @@ with tab_perfiles:
     st.caption(
         f"Agrupa observaciones según *qué dimensiones* pesan, no solo su nivel. k={info_perfiles['k']} elegido por silhouette "
         f"({info_perfiles['silhouette']:.2f}, estructura moderada) y ajustado solo con la ventana 2005-2012, para no usar "
-        "información futura. CABA queda sin perfil (falta servicio de deuda confiable; no se imputan datos)."
+        "información futura. Las observaciones con datos faltantes quedan sin perfil (no se imputan)."
     )
     anio_perfil = st.select_slider("Año", options=sorted(ANIOS), value=max(ANIOS), key="anio_perfil")
     col_a, col_b = st.columns([1, 1])

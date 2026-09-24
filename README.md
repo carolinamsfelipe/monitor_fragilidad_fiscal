@@ -101,7 +101,7 @@ en un proyecto de investigación previo (Taller de Indicadores Económicos,
 |---|---|---|
 | `panel_fiscal_provincial.csv`, `panel_fiscal_benchmarks.csv` | DNAP (ejecución presupuestaria) | 2005-2025, 24 jurisdicciones |
 | `deuda_provincial_panel_1996_2025.csv` | DNAP (stock de deuda) | 1996-2025, 24 jurisdicciones |
-| `servicio_deuda_provincial_panel_2005_2025.csv` | DNAP (servicio de deuda) | 2005-2025, 24 jurisdicciones (CABA no confiable) |
+| `servicio_deuda_provincial_panel_2005_2025.csv` | DNAP (servicio de deuda) | 2005-2025, 24 jurisdicciones (CABA corregida: hoja `Millones`) |
 | `deuda_ratios_provincia_anio.csv` | Cálculo propio sobre los anteriores | 2005-2025 |
 | `deuda_moneda_panel.csv` | Bazza, Tedesca & Mahieu (2025) | 11-13 de 24 provincias, 1996-2002 y 2014-2020 |
 | `capacidad_respuesta_panel.csv` | BCRA (depósitos/préstamos) | 2005-2025, 24 jurisdicciones |
@@ -140,7 +140,7 @@ claramente más altos que el resto (AUC descriptiva ≈ 0.97).
 
 Machine learning clásico (scikit-learn), sin APIs ni claves ni costo, reproducible con semilla fija:
 
-- **Perfiles fiscales (k-means)**, ajustados solo con la ventana 2005-2012 (silhouette ≈ 0.29: estructura moderada).
+- **Perfiles fiscales (k-means)**, ajustados solo con la ventana 2005-2012 (silhouette ≈ 0.30: estructura moderada).
 - **Anomalías (Isolation Forest)**: descriptivo, no predictivo.
 - **Proyección por tendencia + backtest**: en el backtest a 1 año **no supera** a repetir el último valor (se informa tal cual).
 - **Simulador de escenarios**: caída de ingresos, depreciación y suba del servicio (sensibilidad mecánica, no pronóstico).
@@ -158,8 +158,7 @@ Machine learning clásico (scikit-learn), sin APIs ni claves ni costo, reproduci
 
 ## 7. Limitaciones y pendientes (resumen — detalle completo en el notebook, Sección 17)
 
-- Servicio de deuda de **CABA** no reconcilia con el consolidado oficial → excluido.
-- **La Pampa**: quiebre de stock sin explicar 2016-2018; 2025 con variables fiscales en cero.
+- **La Pampa:** el stock 2005-2017 es casi seguro un error de unidades de la fuente (sin confirmar con la DNAP); sus puntajes de solvencia de esos años no son confiables.
 - **Exposición cambiaria por provincia**: sin fuente primaria descargable (solo consolidado nacional).
 - **Composición de deuda por moneda**: cobertura de solo 11-13 de 24 provincias.
 - Sin base pública gratuita de calificaciones crediticias provinciales.
