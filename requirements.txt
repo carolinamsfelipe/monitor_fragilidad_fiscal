@@ -1,0 +1,8 @@
+# Dependencias mínimas del dashboard (app.py). Es el archivo que lee Streamlit Community Cloud.
+# Para el notebook y para regenerar informe/presentación: pip install -r requirements-notebook.txt
+pandas>=2.2
+numpy>=1.26
+scipy>=1.11
+scikit-learn>=1.4
+plotly>=5.20
+streamlit>=1.50
