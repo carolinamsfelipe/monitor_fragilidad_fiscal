@@ -1,0 +1,14 @@
+provincia,anio_evento,tipo_evento,severidad,fuente,nota_convencion_anio
+La Rioja,2020,Default / reestructuración de deuda,Alta,"DNAP, reestructuracion_titulos_provinciales.pdf (bono USD 300M emitido en 2017)",Fecha puntual documentada por la fuente.
+Mendoza,2020,Reestructuración de bonos internacionales,Alta,"DNAP, reestructuracion_titulos_provinciales.pdf",Fuente agrupa el evento como 2020-2021 sin desagregar por provincia; se ancla en 2020 (año del shock COVID que originó la ronda de reestructuraciones) para permitir comparación transversal pre-shock 2019 -> outcome 2020 consistente con la validación pre-shock ya realizada en la investigación original.
+Neuquén,2020,Reestructuración de bonos internacionales,Alta,"DNAP, reestructuracion_titulos_provinciales.pdf",Ver nota de Mendoza.
+Córdoba,2020,Reestructuración de bonos internacionales,Alta,"DNAP, reestructuracion_titulos_provinciales.pdf",Ver nota de Mendoza.
+Chubut,2020,Reestructuración de bonos internacionales,Alta,"DNAP, reestructuracion_titulos_provinciales.pdf",Ver nota de Mendoza.
+Río Negro,2020,Reestructuración de bonos internacionales,Alta,"DNAP, reestructuracion_titulos_provinciales.pdf",Ver nota de Mendoza.
+Salta,2020,Reestructuración de bonos internacionales,Alta,"DNAP, reestructuracion_titulos_provinciales.pdf",Ver nota de Mendoza.
+Entre Ríos,2020,Reestructuración de bonos internacionales,Alta,"DNAP, reestructuracion_titulos_provinciales.pdf",Ver nota de Mendoza.
+Jujuy,2020,Reestructuración de bonos internacionales,Media-Alta,"DNAP; Bazza, Tedesca & Mahieu (2025)",Ver nota de Mendoza. Confirmado además tras duplicar endeudamiento 2016-2019.
+Chaco,2020,Reestructuración de bonos internacionales,Alta,"DNAP, reestructuracion_titulos_provinciales.pdf",Ver nota de Mendoza.
+Buenos Aires,2020,Reestructuración de bonos internacionales,Alta,"DNAP, reestructuracion_titulos_provinciales.pdf",Ver nota de Mendoza.
+Tierra del Fuego,2020,Reestructuración de bonos internacionales,Alta,"DNAP, reestructuracion_titulos_provinciales.pdf",Ver nota de Mendoza.
+La Rioja,2025,Incumplimiento (Bono Verde) — cesación de pagos,Alta,"DNAP, reestructuracion_titulos_provinciales.pdf (feb-2025)",Fecha puntual documentada por la fuente.

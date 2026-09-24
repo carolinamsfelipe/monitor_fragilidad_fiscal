@@ -1,0 +1,169 @@
+provincia,anio,unidad,deuda_moneda_nacional,deuda_moneda_extranjera,deuda_total_moneda,pct_moneda_extranjera
+Buenos Aires,2014,millones_de_pesos,50673,38352.0,89025.0,43.1
+Buenos Aires,2015,millones_de_pesos,111143,10351.0,121494.0,8.5
+Buenos Aires,2016,millones_de_pesos,185976,11020.0,196996.0,5.6
+Buenos Aires,2017,millones_de_pesos,244755,11950.0,256705.0,4.7
+Buenos Aires,2018,millones_de_pesos,93830,380590.0,474420.0,80.2
+Buenos Aires,2019,millones_de_pesos,106381,547204.0,653585.0,83.7
+Buenos Aires,2020,millones_de_pesos,128599,771221.0,899820.0,85.7
+Catamarca,1996,miles_de_pesos,154029,110441.0,264470.0,41.8
+Catamarca,1997,miles_de_pesos,157208,157593.0,314801.0,50.1
+Catamarca,1998,miles_de_pesos,142047,217889.0,359936.0,60.5
+Catamarca,1999,miles_de_pesos,137514,264410.0,401924.0,65.8
+Catamarca,2000,miles_de_pesos,206209,261850.0,468059.0,55.9
+Catamarca,2001,miles_de_pesos,283072,243006.0,526078.0,46.2
+Catamarca,2002,miles_de_pesos,893528,207866.0,1101394.0,18.9
+Chaco,2014,millones_de_pesos,5847,331.0,6178.0,5.4
+Chaco,2015,millones_de_pesos,6499,513.0,7012.0,7.3
+Chaco,2016,millones_de_pesos,12310,737.0,13047.0,5.6
+Chaco,2017,millones_de_pesos,17544,1667.0,19211.0,8.7
+Chaco,2018,millones_de_pesos,9247,14731.0,23978.0,61.4
+Chaco,2019,millones_de_pesos,16098,22918.0,39016.0,58.7
+Chaco,2020,millones_de_pesos,21762,33609.0,55371.0,60.7
+Chubut,2014,millones_de_pesos,2632,430.0,3062.0,14.0
+Chubut,2015,millones_de_pesos,5,2289.0,2294.0,99.8
+Chubut,2016,millones_de_pesos,7940,12603.0,20543.0,61.3
+Chubut,2017,millones_de_pesos,17304,8249.0,25553.0,32.3
+Chubut,2018,millones_de_pesos,5581,32730.0,38311.0,85.4
+Chubut,2019,millones_de_pesos,11013,48479.0,59492.0,81.5
+Chubut,2020,millones_de_pesos,23504,65212.0,88716.0,73.5
+Corrientes,1996,miles_de_pesos,323652,274353.0,598005.0,45.9
+Corrientes,1997,miles_de_pesos,299212,403085.0,702297.0,57.4
+Corrientes,1998,miles_de_pesos,233142,627956.0,861098.0,72.9
+Corrientes,1999,miles_de_pesos,314779,611072.0,925851.0,66.0
+Corrientes,2000,miles_de_pesos,192892,843585.0,1036477.0,81.4
+Corrientes,2001,miles_de_pesos,197876,869191.0,1067067.0,81.5
+Corrientes,2002,miles_de_pesos,1536563,245393.0,1781956.0,13.8
+Córdoba,1996,miles_de_pesos,608017,303872.0,911889.0,33.3
+Córdoba,1997,miles_de_pesos,405371,555138.0,960509.0,57.8
+Córdoba,1998,miles_de_pesos,156979,742848.0,899827.0,82.6
+Córdoba,1999,miles_de_pesos,307298,750865.0,1058163.0,71.0
+Córdoba,2000,miles_de_pesos,279185,939393.0,1218578.0,77.1
+Córdoba,2001,miles_de_pesos,649598,2013737.0,2663335.0,75.6
+Córdoba,2002,miles_de_pesos,4517148,985799.0,5502947.0,17.9
+Córdoba,2014,millones_de_pesos,6779,7962.0,14741.0,54.0
+Córdoba,2015,millones_de_pesos,5265,13182.0,18447.0,71.5
+Córdoba,2016,millones_de_pesos,8666,20069.0,28735.0,69.8
+Córdoba,2017,millones_de_pesos,7235,41442.0,48677.0,85.1
+Córdoba,2018,millones_de_pesos,5439,97698.0,103137.0,94.7
+Córdoba,2019,millones_de_pesos,9521,152432.0,161953.0,94.1
+Córdoba,2020,millones_de_pesos,23102,208107.0,231209.0,90.0
+Entre Ríos,1996,miles_de_pesos,208194,314040.0,522234.0,60.1
+Entre Ríos,1997,miles_de_pesos,172780,289567.0,462347.0,62.6
+Entre Ríos,1998,miles_de_pesos,161824,372074.0,533898.0,69.7
+Entre Ríos,1999,miles_de_pesos,218584,414824.0,633408.0,65.5
+Entre Ríos,2000,miles_de_pesos,160987,672427.0,833414.0,80.7
+Entre Ríos,2001,miles_de_pesos,146336,789375.0,935711.0,84.4
+Entre Ríos,2002,miles_de_pesos,1762774,391202.0,2153976.0,18.2
+Entre Ríos,2014,millones_de_pesos,5183,2885.0,8068.0,35.8
+Entre Ríos,2015,millones_de_pesos,7592,3220.0,10812.0,29.8
+Entre Ríos,2016,millones_de_pesos,12415,3406.0,15821.0,21.5
+Entre Ríos,2017,millones_de_pesos,20013,5152.0,25165.0,20.5
+Entre Ríos,2018,millones_de_pesos,5918,27954.0,33872.0,82.5
+Entre Ríos,2019,millones_de_pesos,10859,43483.0,54342.0,80.0
+Entre Ríos,2020,millones_de_pesos,19486,60221.0,79707.0,75.6
+Formosa,1996,miles_de_pesos,309562,257133.0,566695.0,45.4
+Formosa,1997,miles_de_pesos,170917,499987.0,670904.0,74.5
+Formosa,1998,miles_de_pesos,142812,568073.0,710885.0,79.9
+Formosa,1999,miles_de_pesos,202167,675614.0,877781.0,77.0
+Formosa,2000,miles_de_pesos,258217,884896.0,1143113.0,77.4
+Formosa,2001,miles_de_pesos,396326,863231.0,1259557.0,68.5
+Formosa,2002,miles_de_pesos,2412587,227021.0,2639608.0,8.6
+Jujuy,2014,millones_de_pesos,6857,68.0,6925.0,1.0
+Jujuy,2015,millones_de_pesos,8078,92.0,8170.0,1.1
+Jujuy,2016,millones_de_pesos,12482,167.0,12649.0,1.3
+Jujuy,2017,millones_de_pesos,22276,342.0,22618.0,1.5
+Jujuy,2018,millones_de_pesos,16172,14259.0,30431.0,46.9
+Jujuy,2019,millones_de_pesos,20430,34713.6,55143.6,63.0
+Jujuy,2020,millones_de_pesos,23332,51588.0,74920.0,68.9
+La Rioja,1996,miles_de_pesos,229032,119451.0,348483.0,34.3
+La Rioja,1997,miles_de_pesos,121304,125675.0,246979.0,50.9
+La Rioja,1998,miles_de_pesos,140921,167981.0,308902.0,54.4
+La Rioja,1999,miles_de_pesos,143656,161833.0,305489.0,53.0
+La Rioja,2000,miles_de_pesos,169135,257824.0,426959.0,60.4
+La Rioja,2001,miles_de_pesos,227428,275672.0,503100.0,54.8
+La Rioja,2002,miles_de_pesos,880185,99371.0,979556.0,10.1
+La Rioja,2014,millones_de_pesos,997,296.0,1293.0,22.9
+La Rioja,2015,millones_de_pesos,1021,455.0,1476.0,30.8
+La Rioja,2016,millones_de_pesos,1583,550.0,2133.0,25.8
+La Rioja,2017,millones_de_pesos,8914,808.0,9722.0,8.3
+La Rioja,2018,millones_de_pesos,1921,12596.0,14517.0,86.8
+La Rioja,2019,millones_de_pesos,2880,19847.0,22727.0,87.3
+La Rioja,2020,millones_de_pesos,3418,27693.0,31111.0,89.0
+Mendoza,1996,miles_de_pesos,605670,350282.0,955952.0,36.6
+Mendoza,1997,miles_de_pesos,642759,408418.0,1051177.0,38.9
+Mendoza,1998,miles_de_pesos,439069,493690.0,932759.0,52.9
+Mendoza,1999,miles_de_pesos,668394,486290.0,1154684.0,42.1
+Mendoza,2000,miles_de_pesos,374644,749178.0,1123822.0,66.7
+Mendoza,2001,miles_de_pesos,373100,816642.0,1189742.0,68.6
+Mendoza,2002,miles_de_pesos,2598787,348768.0,2947555.0,11.8
+Mendoza,2014,millones_de_pesos,7238,1903.0,9141.0,20.8
+Mendoza,2015,millones_de_pesos,9237,3121.0,12358.0,25.3
+Mendoza,2016,millones_de_pesos,10602,15827.0,26429.0,59.9
+Mendoza,2017,millones_de_pesos,17425,22005.0,39430.0,55.8
+Mendoza,2018,millones_de_pesos,20074,30319.0,50393.0,60.2
+Mendoza,2019,millones_de_pesos,29275,47285.0,76560.0,61.8
+Mendoza,2020,millones_de_pesos,37808,65362.0,103170.0,63.4
+Neuquén,1996,miles_de_pesos,101774,90646.0,192420.0,47.1
+Neuquén,1997,miles_de_pesos,55265,121535.0,176800.0,68.7
+Neuquén,1998,miles_de_pesos,40692,234382.0,275074.0,85.2
+Neuquén,1999,miles_de_pesos,18571,467668.0,486239.0,96.2
+Neuquén,2000,miles_de_pesos,157504,484481.0,641985.0,75.5
+Neuquén,2001,miles_de_pesos,293226,429422.0,722648.0,59.4
+Neuquén,2002,miles_de_pesos,1235840,307288.0,1543128.0,19.9
+Neuquén,2014,millones_de_pesos,2538,4749.0,7287.0,65.2
+Neuquén,2015,millones_de_pesos,10266,2300.0,12566.0,18.3
+Neuquén,2016,millones_de_pesos,17182,2718.0,19900.0,13.7
+Neuquén,2017,millones_de_pesos,26231,3082.0,29313.0,10.5
+Neuquén,2018,millones_de_pesos,8406,39353.0,47759.0,82.4
+Neuquén,2019,millones_de_pesos,8359,67009.0,75368.0,88.9
+Neuquén,2020,millones_de_pesos,18561,87283.0,105844.0,82.5
+Río Negro,1996,miles_de_pesos,269359,263876.0,533235.0,49.5
+Río Negro,1997,miles_de_pesos,265425,392107.0,657532.0,59.6
+Río Negro,1998,miles_de_pesos,218461,580636.0,799097.0,72.7
+Río Negro,1999,miles_de_pesos,182257,708894.0,891151.0,79.5
+Río Negro,2000,miles_de_pesos,295319,709018.0,1004337.0,70.6
+Río Negro,2001,miles_de_pesos,411471,668402.0,1079873.0,61.9
+Río Negro,2002,miles_de_pesos,1874458,507411.0,2381869.0,21.3
+Río Negro,2014,millones_de_pesos,4025,900.0,4925.0,18.3
+Río Negro,2015,millones_de_pesos,3912,1255.0,5167.0,24.3
+Río Negro,2016,millones_de_pesos,6800,1547.0,8347.0,18.5
+Río Negro,2017,millones_de_pesos,17587,1788.0,19375.0,9.2
+Río Negro,2018,millones_de_pesos,7392,14891.0,22283.0,66.8
+Río Negro,2019,millones_de_pesos,9975,23068.0,33043.0,69.8
+Río Negro,2020,millones_de_pesos,16252,32850.0,49102.0,66.9
+Salta,1996,miles_de_pesos,294139,160438.0,454577.0,35.3
+Salta,1997,miles_de_pesos,207666,276224.0,483890.0,57.1
+Salta,1998,miles_de_pesos,134692,372190.0,506882.0,73.4
+Salta,1999,miles_de_pesos,164868,444892.0,609760.0,73.0
+Salta,2000,miles_de_pesos,136935,551714.0,688649.0,80.1
+Salta,2001,miles_de_pesos,171830,465002.0,636832.0,73.0
+Salta,2002,miles_de_pesos,965551,498575.0,1464126.0,34.1
+Salta,2014,millones_de_pesos,3040,787.0,3827.0,20.6
+Salta,2015,millones_de_pesos,3620,1019.0,4639.0,22.0
+Salta,2016,millones_de_pesos,9956,1267.0,11223.0,11.3
+Salta,2017,millones_de_pesos,14754,1550.0,16304.0,9.5
+Salta,2018,millones_de_pesos,7745,18640.0,26385.0,70.6
+Salta,2019,millones_de_pesos,9158,28001.0,37159.0,75.4
+Salta,2020,millones_de_pesos,11456,37081.0,48537.0,76.4
+San Juan,1996,miles_de_pesos,176943,111896.0,288839.0,38.7
+San Juan,1997,miles_de_pesos,155238,191022.0,346260.0,55.2
+San Juan,1998,miles_de_pesos,134023,245090.0,379113.0,64.6
+San Juan,1999,miles_de_pesos,255686,367685.0,623371.0,59.0
+San Juan,2000,miles_de_pesos,147233,515638.0,662871.0,77.8
+San Juan,2001,miles_de_pesos,257364,504367.0,761731.0,66.2
+San Juan,2002,miles_de_pesos,1362167,238835.0,1601002.0,14.9
+Tierra del Fuego,1996,miles_de_pesos,31995,26229.0,58224.0,45.0
+Tierra del Fuego,1997,miles_de_pesos,64197,66464.0,130661.0,50.9
+Tierra del Fuego,1998,miles_de_pesos,36338,79024.0,115362.0,68.5
+Tierra del Fuego,1999,miles_de_pesos,153583,45706.0,199289.0,22.9
+Tierra del Fuego,2000,miles_de_pesos,389749,83900.0,473649.0,17.7
+Tierra del Fuego,2001,miles_de_pesos,418747,86686.0,505433.0,17.2
+Tierra del Fuego,2002,miles_de_pesos,615153,36232.0,651385.0,5.6
+Tucumán,1996,miles_de_pesos,412178,277973.0,690151.0,40.3
+Tucumán,1997,miles_de_pesos,528608,275289.0,803897.0,34.2
+Tucumán,1998,miles_de_pesos,358534,506089.0,864623.0,58.5
+Tucumán,1999,miles_de_pesos,468385,505535.0,973920.0,51.9
+Tucumán,2000,miles_de_pesos,417677,687039.0,1104716.0,62.2
+Tucumán,2001,miles_de_pesos,553037,722999.0,1276036.0,56.7
+Tucumán,2002,miles_de_pesos,2069747,494515.0,2564262.0,19.3
