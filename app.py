@@ -1,21 +1,17 @@
 """
-Monitor de Fragilidad Fiscal Provincial — Dashboard (Streamlit)
-==================================================================
+Monitor de Fragilidad Fiscal Provincial — Dashboard (Streamlit), IFFS v2
+=========================================================================
 
-Prototipo funcional para el Segundo Parcial de Programación para Economistas.
+Ejecutar con:   streamlit run app.py
 
-Ejecutar con:
-    streamlit run app.py
-
-Este dashboard es una herramienta de apoyo al análisis, no un predictor de
-default: los umbrales de alerta son una convención metodológica (ver
-src/indicators.py) y el propio notebook (notebooks/fragilidad_fiscal_provincial.ipynb)
-documenta que el índice no tiene, con la evidencia disponible, poder de
-anticipación confiable fuera de muestra.
+Herramienta de apoyo al análisis: muestra POSICIONES RELATIVAS entre jurisdicciones (percentil dentro de cada año), NO probabilidades
+de default. Todas las cifras de validación provienen de `outputs/` (generado por scripts/generar_resultados.py), las mismas que usan
+el notebook, el informe y la presentación. Si el código o los datos cambiaron desde esa corrida, la app lo avisa.
 """
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -24,425 +20,438 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-PROJECT_ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(PROJECT_ROOT))
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
 
-from src import data_processing as dp
-from src import indicators as ind
-from src import modeling as mdl
 from src import analytics as an
+from src import indicators as ind
+from src import pipeline as pl
+from src import validation as val
+from src.formato import es as _es
 
-# Streamlit no recarga los módulos ya importados cuando cambian en disco (p. ej. tras un deploy): se fuerza la recarga
-# para que los cambios en src/ se vean sin reiniciar el proceso.
-import importlib
-for _modulo in (dp, ind, mdl, an):
-    importlib.reload(_modulo)
+# Formato castellano (coma decimal) para todo el texto que la app escribe; se parchea una sola vez por proceso.
+from streamlit.delta_generator import DeltaGenerator as _DG
 
-st.set_page_config(
-    page_title="Monitor de Fragilidad Fiscal Provincial",
-    page_icon="📊",
-    layout="wide",
-)
+if not getattr(_DG, "_es_parcheado", False):
+    for _nombre in ("markdown", "caption", "info", "warning", "error", "success", "write"):
+        def _envolver(orig):
+            def _f(self, cuerpo=None, *a, **k):
+                return orig(self, _es(cuerpo), *a, **k)
+            return _f
+        setattr(_DG, _nombre, _envolver(getattr(_DG, _nombre)))
+    _orig_metric = _DG.metric
+    _DG.metric = lambda self, label, value, delta=None, *a, **k: _orig_metric(self, _es(label), _es(value), _es(delta), *a, **k)
+    _DG._es_parcheado = True
 
+st.set_page_config(page_title="Monitor de Fragilidad Fiscal Provincial", page_icon="📊", layout="wide")
 
-# ---------------------------------------------------------------------------
-# Carga de datos (cacheada)
-# ---------------------------------------------------------------------------
-
-def _huella_archivos() -> str:
-    """Hash del código y los datos: si cambia cualquier archivo, la caché se invalida (evita mostrar resultados viejos)."""
-    import hashlib
-    h = hashlib.md5()
-    for carpeta, patron in [("src", "*.py"), ("data/raw", "**/*")]:
-        for f in sorted((PROJECT_ROOT / carpeta).glob(patron)):
-            if f.is_file():
-                h.update(f.name.encode()); h.update(f.read_bytes())
-    return h.hexdigest()
-
-
-@st.cache_data(show_spinner="Cargando y procesando datos fiscales provinciales...")
-def cargar_datos(huella: str):
-    panel = dp.construir_panel_maestro()
-    avisos = dp.validar_panel_maestro(panel)
-    panel_iffs, meta = ind.construir_iffs(panel)
-    panel_iffs, info_perfiles = an.construir_panel_analitico(panel_iffs)  # + nivel de alerta, perfiles, cambios, anomalías
-    eventos = dp.load_eventos_estres()
-    panel_target = mdl.construir_target_estres(panel_iffs, eventos)
-    backtest = an.backtest_proyeccion(panel_iffs)
-    return panel_iffs, meta, avisos, eventos, panel_target, info_perfiles, backtest
-
-
-panel_iffs, meta_iffs, avisos_validacion, eventos, panel_target, info_perfiles, backtest_proy = cargar_datos(_huella_archivos())
-
-PROVINCIAS = sorted(panel_iffs["provincia"].unique())
-ANIOS = sorted(panel_iffs["anio"].unique())
-
-
-ETIQUETAS = {
-    "provincia": "Provincia", "anio": "Año", "IFFS_A": "IFFS-A", "IFFS_B": "IFFS-B", "IFFS_C": "IFFS-C",
-    "nivel_alerta": "Nivel de alerta", "perfil_nombre": "Perfil", "d_iffs_1a": "Δ IFFS-B (1 año)",
-    "d_iffs_3a": "Δ IFFS-B (3 años)", "dimension_motor": "Dimensión motor", "anomalia_score": "Puntaje de rareza",
-    "deuda_sobre_ingresos": "Deuda / Ingresos", "servicio_sobre_ingresos": "Servicio / Ingresos",
-    "rigidez_gastototal": "Rigidez del gasto", "fragilidad_resultado": "Fragilidad del resultado",
-    "nivel_anterior": "Nivel anterior",
-}
-DECIMALES = {
-    "IFFS_A": 0, "IFFS_B": 0, "IFFS_C": 0, "d_iffs_1a": 0, "d_iffs_3a": 0, "anomalia_score": 2,
-    "deuda_sobre_ingresos": 2, "servicio_sobre_ingresos": 3, "rigidez_gastototal": 2, "fragilidad_resultado": 3,
-}
-
-
-def vista(df: pd.DataFrame) -> pd.DataFrame:
-    """Versión para mostrar: nombres legibles (Año, Provincia...) y sin decimales innecesarios."""
-    df = df.copy()
-    for col, dec in DECIMALES.items():
-        if col in df.columns:
-            df[col] = df[col].round(dec)
-    return df.rename(columns=ETIQUETAS)
-
-
-GLOSARIO = """
-**IFFS = Índice de Fragilidad Fiscal Subnacional.** Va de 0 a 100 y compara a cada provincia-año con la
-historia de referencia 2005-2012 (percentil): **más alto = más frágil = menos margen para absorber un shock.**
-
-| Versión | Qué combina | Para qué sirve |
-|---|---|---|
-| **IFFS-A** | Solvencia (Deuda / Ingresos) + Liquidez (Servicio de deuda / Ingresos), con igual peso | Versión simple y parsimoniosa. Exige tener las 2 dimensiones. |
-| **IFFS-B** | Las 4 dimensiones con igual peso: solvencia, liquidez, **rigidez del gasto** (Personal / Gasto total) y **desempeño fiscal** (−Resultado / Ingresos) | **Índice principal**: lo usan el ranking, las alertas y los perfiles. Si falta alguna dimensión queda como *provisional*. |
-| **IFFS-C** | Primer componente principal (PCA) de las mismas 4 dimensiones; los pesos se estiman solo con datos 2005-2012 | Chequeo de robustez: pesos que salen de los datos en vez de fijarse a mano. |
-
-**Niveles de alerta (sobre IFFS-B):** Bajo < 33 · Medio 33-66 · Alto 66-85 · Crítico ≥ 85. Son cortes de lectura, no una calibración estadística.
-"""
+COLOR_DIM = {"solvencia": "#2a78d6", "liquidez": "#eb6834", "estructural": "#1baf7a", "coyuntural": "#4a3aa7"}
+COLOR_POS = {**ind.COLORES_CUARTIL}
+TABLAS = ROOT / "outputs" / "tables"
 
 
 # ---------------------------------------------------------------------------
-# Sidebar — controles
+# Carga (cacheada)
 # ---------------------------------------------------------------------------
+@st.cache_data(show_spinner="Construyendo el panel del IFFS v2...")
+def cargar(huella: str, la_pampa: str):
+    return pl.construir_todo(la_pampa)
 
+
+@st.cache_data(show_spinner=False)
+def cargar_resultados(mtime: float):
+    f = ROOT / "outputs" / "resultados_clave.json"
+    R = json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
+    tablas = {p.stem: pd.read_csv(p) for p in sorted(TABLAS.glob("T*.csv"))} if TABLAS.exists() else {}
+    return R, tablas
+
+
+HUELLA = pl.huella_del_proyecto()
 st.sidebar.title("📊 Monitor de Fragilidad Fiscal")
-st.sidebar.caption("Sistema de evaluación y alerta temprana — provincias argentinas")
-
-provincia_foco = st.sidebar.selectbox("Provincia a analizar", PROVINCIAS, index=PROVINCIAS.index("La Rioja") if "La Rioja" in PROVINCIAS else 0)
-periodo = st.sidebar.slider("Período", min_value=min(ANIOS), max_value=max(ANIOS), value=(min(ANIOS), max(ANIOS)))
-provincias_comparar = st.sidebar.multiselect(
-    "Provincias a comparar",
-    PROVINCIAS,
-    default=[p for p in ["La Rioja", "Buenos Aires", "CABA", "Santiago del Estero"] if p in PROVINCIAS],
+st.sidebar.caption("IFFS v2 · 24 jurisdicciones · 2005-2025")
+escenario = st.sidebar.radio(
+    "Tratamiento de La Pampa (stock 2005-2017)",
+    ["excluir", "sensibilidad_miles"],
+    format_func=lambda x: {"excluir": "Principal: dato no confiable → faltante",
+                           "sensibilidad_miles": "Sensibilidad: ÷1.000 (SUPUESTO sin confirmar)"}[x],
+    help="El stock de deuda de La Pampa 2005-2017 puede tener un error de unidades y NO hay confirmación oficial. "
+         "El análisis principal lo trata como faltante; la opción de sensibilidad aplica ÷1.000 solo como ejercicio.",
 )
+T = cargar(HUELLA, escenario)
+R, TAB = cargar_resultados((ROOT / 'outputs' / 'resultados_clave.json').stat().st_mtime if (ROOT / 'outputs' / 'resultados_clave.json').exists() else 0.0)
+panel, eventos, info_perfiles, backtest = T["panel"], T["eventos"], T["info_perfiles"], T["backtest"]
+PROVINCIAS = sorted(panel["provincia"].unique())
+ANIOS = sorted(panel["anio"].unique())
 
-with st.sidebar.expander("ℹ️ Sobre el índice y sus límites"):
-    st.markdown(
-        "El **IFFS-B** combina, con igual ponderación, cuatro dimensiones: "
-        "solvencia (deuda/ingresos), liquidez (servicio/ingresos), rigidez del "
-        "gasto y desempeño fiscal, normalizadas por percentil sobre una ventana "
-        "base fija (2005-2012). Los umbrales de alerta (33/66/85) son una "
-        "convención expositiva, **no** una calibración estadística contra "
-        "episodios reales de default. Ver el notebook para el "
-        "detalle metodológico completo y sus limitaciones."
-    )
-
-if avisos_validacion:
-    with st.sidebar.expander("⚠️ Avisos de validación de datos"):
-        for a in avisos_validacion:
-            st.write("-", a)
-
-
-panel_filtrado = panel_iffs[panel_iffs["anio"].between(*periodo)]
+provincia_foco = st.sidebar.selectbox("Provincia a analizar", PROVINCIAS, index=PROVINCIAS.index("La Rioja"))
+periodo = st.sidebar.slider("Período", min(ANIOS), max(ANIOS), (min(ANIOS), max(ANIOS)))
+provincias_comparar = st.sidebar.multiselect("Provincias a comparar", PROVINCIAS,
+                                             default=[p for p in ["La Rioja", "Buenos Aires", "CABA", "Chubut"] if p in PROVINCIAS])
+with st.sidebar.expander("⚠️ Avisos de validación de datos", expanded=False):
+    for a in T["avisos"]:
+        st.write("-", a)
 
 st.title("Monitor de Fragilidad Fiscal Provincial")
-st.caption("Es solo **UNA** herramienta de apoyo al análisis económico, no un mecanismo de predicción de default.")
-with st.expander("ℹ️ ¿Qué significan IFFS-A, IFFS-B e IFFS-C?"):
-    st.markdown(GLOSARIO)
+st.caption("Posición **relativa** de cada jurisdicción frente a sus pares (percentil dentro de cada año). "
+           "**No es una probabilidad de default** ni una medida absoluta de solvencia.")
+if escenario != "excluir":
+    st.warning("**Escenario de sensibilidad activo.** La Pampa 2005-2017 se calcula dividiendo su stock de deuda por 1.000 bajo el SUPUESTO "
+               "(sin confirmación oficial) de que la fuente está en miles. Las tablas de validación de la pestaña ✅ corresponden al análisis principal.")
+if R is None:
+    st.error("Falta `outputs/resultados_clave.json`: ejecutá `python scripts/generar_resultados.py`. La pestaña de validación no está disponible.")
+elif R.get("huella") != HUELLA:
+    st.warning("Las tablas de `outputs/` se generaron con una versión anterior del código o de los datos: volvé a ejecutar "
+               "`python scripts/generar_resultados.py` para que la validación coincida con lo que se ve acá.")
 
-(tab_ranking, tab_evolucion, tab_comparacion, tab_detalle,
- tab_perfiles, tab_alertas, tab_simulador, tab_datos) = st.tabs(
-    ["🏆 Ranking / mapa", "📈 Evolución histórica", "⚖️ Comparación", "🔎 Detalle y análisis",
-     "🧩 Perfiles (ML)", "🚨 Alertas y cambios", "🎛️ Simulador", "📥 Datos"]
-)
+panel_f = panel[panel["anio"].between(*periodo)]
+(t_res, t_rank, t_evo, t_det, t_val, t_rob, t_perf, t_sim, t_dat) = st.tabs(
+    ["🏠 Resumen", "🏆 Ranking", "📈 Evolución", "🔎 Detalle", "✅ Validación", "🧪 Robustez", "🧩 Perfiles y cambios", "🎛️ Simulador", "📥 Datos y cobertura"])
 
-# ---------------------------------------------------------------------------
-# Tab 1: Ranking / mapa de calor
-# ---------------------------------------------------------------------------
-with tab_ranking:
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        anio_ranking = st.selectbox("Año del ranking", sorted(ANIOS, reverse=True), key="anio_ranking")
-    df_ranking = panel_iffs[panel_iffs["anio"] == anio_ranking].dropna(subset=["IFFS_B"]).sort_values("IFFS_B", ascending=False)
+TIPOS = ("**Evidencia** = calculado en los datos · **Interpretación** = lectura económica · **Supuesto** = no verificado · "
+         "**Diseño** = decisión de construcción · **Limitación** = lo que no se puede concluir.")
 
-    c1, c2 = st.columns(2)
-    with c1:
-        fig = px.bar(
-            df_ranking, x="IFFS_B", y="provincia", orientation="h",
-            color="nivel_alerta",
-            color_discrete_map={"Bajo": "#2E7D32", "Medio": "#F9A825", "Alto": "#EF6C00", "Crítico": "#C62828"},
-            category_orders={"provincia": df_ranking["provincia"].tolist()[::-1]},
-            title=f"Ranking de fragilidad fiscal (IFFS-B) — {anio_ranking}",
-            labels={"IFFS_B": "IFFS-B (0-100)", "provincia": "Provincia", "nivel_alerta": "Nivel de alerta"},
-            hover_data={"IFFS_B": ":.0f"},
-        )
-        fig.update_layout(height=650)
-        st.plotly_chart(fig, width="stretch")
-    with c2:
-        pivot = panel_filtrado.pivot_table(index="provincia", columns="anio", values="IFFS_B")
-        fig_heat = px.imshow(
-            pivot, color_continuous_scale="RdYlGn_r", aspect="auto",
-            title="Mapa de calor — IFFS-B por provincia y año",
-            labels={"x": "Año", "y": "Provincia", "color": "IFFS-B"},
-        )
-        fig_heat.update_traces(hovertemplate="%{y}<br>Año %{x}<br>IFFS-B: %{z:.0f}<extra></extra>")
-        fig_heat.update_layout(height=650)
-        st.plotly_chart(fig_heat, width="stretch")
 
-    st.caption(
-        "Fuente: DNAP (ejecución presupuestaria, deuda y servicio de deuda), BCRA "
-        "(capacidad de respuesta). Elaboración propia sobre paneles auditados. "
-        f"Período: {min(ANIOS)}-{max(ANIOS)}."
-    )
+def pct(x, d=0):
+    return f"{100 * x:.{d}f}%"
+
+
+def fmt_auc(m):
+    return f"{m['auc']:.2f} [IC95%: {m['ic95'][0]:.2f}–{m['ic95'][1]:.2f}]"
+
 
 # ---------------------------------------------------------------------------
-# Tab 2: Evolución histórica
+# Resumen
 # ---------------------------------------------------------------------------
-with tab_evolucion:
-    st.subheader(f"Evolución histórica — {provincia_foco}")
-    df_prov = panel_iffs[(panel_iffs.provincia == provincia_foco) & (panel_iffs.anio.between(*periodo))]
+with t_res:
+    st.markdown("### Qué muestra y qué no")
+    c1, c2, c3 = st.columns(3)
+    if R:
+        c1.metric("Cobertura del compuesto", f"{R['cobertura']['n_compuesto']} de {R['cobertura']['n_total']}", f"{R['cobertura']['pct_compuesto']}%", delta_color="off")
+        d = R["discriminacion_2019"]["IFFS compuesto (principal)"]
+        c2.metric("AUC en 2019 (discriminación)", f"{d['auc']:.2f}", f"IC95% {d['ic95'][0]:.2f}–{d['ic95'][1]:.2f}", delta_color="off")
+        c3.metric("Eventos (default/reestructuración)", f"{R['eventos']['n_eventos']}", f"{R['eventos']['n_covid']} en el mismo shock 2020-21", delta_color="off")
+    st.info(TIPOS)
+    st.markdown("""
+**Estructura (Diseño).** Cuatro **subíndices** (0-100, mayor = más frágil *respecto de los pares ese año*) y un **compuesto**:
 
-    fig_evol = go.Figure()
-    for col, nombre in [("IFFS_A", "IFFS-A (deuda + servicio)"), ("IFFS_B", "IFFS-B (4 dimensiones, principal)"),
-                        ("IFFS_C", "IFFS-C (componente principal / PCA)")]:
-        fig_evol.add_trace(go.Scatter(x=df_prov["anio"], y=df_prov[col], mode="lines+markers", name=nombre,
-                                      hovertemplate="Año %{x}: %{y:.0f}<extra>%{fullData.name}</extra>"))
-    fig_evol.add_vrect(x0=2020, x1=2021, fillcolor="grey", opacity=0.15, line_width=0, annotation_text="Shock COVID-19")
-    fig_evol.update_layout(
-        title=f"Evolución de las tres especificaciones del IFFS — {provincia_foco}",
-        xaxis_title="Año", yaxis_title="IFFS (0-100)", height=420,
-    )
-    st.plotly_chart(fig_evol, width="stretch")
+| Subíndice | Variable | Entra al compuesto |
+|---|---|---|
+| **Solvencia** | Deuda / Ingresos corrientes | Sí |
+| **Liquidez** | Servicio de deuda / Ingresos corrientes | Sí |
+| **Estructural** | Gasto en personal / Gasto total | Sí |
+| **Coyuntural** | −Resultado financiero / Ingresos | **No** (regla ex ante: su persistencia de rangos, __PERS__, es menor que 0,85; se reporta aparte) |
 
-    st.markdown("**Ratios que componen el índice:**")
-    fig_ratios = go.Figure()
-    for col, nombre in [
-        ("deuda_sobre_ingresos", "Deuda / Ingresos"),
-        ("servicio_sobre_ingresos", "Servicio deuda / Ingresos"),
-        ("rigidez_gastototal", "Personal / Gasto total"),
-    ]:
-        fig_ratios.add_trace(go.Scatter(x=df_prov["anio"], y=df_prov[col], mode="lines+markers", name=nombre,
-                                        hovertemplate="Año %{x}: %{y:.2f}<extra>%{fullData.name}</extra>"))
-    fig_ratios.update_layout(xaxis_title="Año", yaxis_title="Ratio (veces)", height=380)
-    st.plotly_chart(fig_ratios, width="stretch")
+**Compuesto (IFFS)** = media simple de solvencia, liquidez y estructural. Se calcula solo si están las tres.
+""".replace("__PERS__", f"{R['diseno']['props']['coyuntural']['persistencia_rangos']:.2f}".replace(".", ",") if R else "n/d"))
+    if R:
+        vt = R["diseno"]
+        pv = R["placebo_temporal"]["auc_iffs_por_anio"]
+        bo = R["discriminacion_2019"]["Benchmark: participación de bonos en la deuda (%)"]
+        pre = R["pretendencia"]["principal|IFFS|T-5->T-1"]
+        st.markdown("### Lo que la evidencia sostiene… y lo que no")
+        st.success(f"**Evidencia — descripción y discriminación.** En 2019, las 12 provincias que luego reestructuraron tenían un IFFS más alto que las otras 12: "
+                   f"AUC {fmt_auc(R['discriminacion_2019']['IFFS compuesto (principal)'])}; el azar produce AUC ≤ {R['azar_auc_2019']['azar_p95']:.2f} el 95% de las veces.")
+        st.warning(f"**Limitación — no es anticipación.** (1) Ese grupo ya se separaba en {R['placebo_temporal']['primer_anio_auc_ge_085']} (AUC {pv[str(R['placebo_temporal']['primer_anio_auc_ge_085'])]:.2f}) "
+                   f"y sigue separado después de los eventos (AUC {pv['2025']:.2f} en 2025): es un rasgo persistente del grupo. "
+                   f"(2) El % de bonos en la deuda —una variable trivial— discrimina casi igual: AUC {fmt_auc(bo)}; solo las provincias con bonos podían reestructurarlos. "
+                   f"(3) El cambio del IFFS entre T−5 y T−1 no fue significativamente mayor en las provincias con evento: {pre['dif']:+.1f} puntos "
+                   f"[{pre['ic95'][0]:+.1f}; {pre['ic95'][1]:+.1f}].")
+        st.error("**Limitación — validación predictiva no viable.** Hay 13 eventos; 12 ocurren en el mismo shock (2020-21) y, para 11 de ellos, el año exacto es una convención "
+                 "(la fuente dice “2020-2021”). No hay eventos antes de 2020 para entrenar, no se puede calibrar una probabilidad y no se optimizaron pesos ni umbrales. Ver ✅ Validación.")
+    st.markdown("### Datos: una corrección y una decisión")
+    st.markdown(
+        "- **CABA** (*evidencia*): el servicio de deuda estaba x1.000 por un error de unidades del procesamiento; se lee la hoja `Millones` de la DNAP, con validación automática.\n"
+        "- **La Pampa 2005-2017** (*decisión de diseño*): posible error de unidades **sin confirmación oficial** → se trata como faltante (no se corrige ni se borra el original). "
+        "La corrección ÷1.000 se muestra solo como sensibilidad (barra lateral).")
 
-    eventos_prov = eventos[eventos.provincia == provincia_foco]
-    if not eventos_prov.empty:
-        st.warning(
-            f"**{provincia_foco}** registra {len(eventos_prov)} evento(s) de estrés fiscal en la base: "
-            + "; ".join(f"{r.anio_evento} ({r.tipo_evento})" for r in eventos_prov.itertuples())
-        )
-    else:
-        st.info(f"**{provincia_foco}** no registra eventos de default/reestructuración en la base 2005-2025.")
-
-# ---------------------------------------------------------------------------
-# Tab 3: Comparación
-# ---------------------------------------------------------------------------
-with tab_comparacion:
-    st.subheader("Comparación entre provincias")
-    if not provincias_comparar:
-        st.info("Elegí una o más provincias en la barra lateral para comparar.")
-    else:
-        df_comp = panel_iffs[
-            (panel_iffs.provincia.isin(provincias_comparar)) & (panel_iffs.anio.between(*periodo))
-        ]
-        fig_comp = px.line(
-            df_comp, x="anio", y="IFFS_B", color="provincia", markers=True,
-            title="IFFS-B — comparación entre provincias seleccionadas",
-            labels={"IFFS_B": "IFFS-B (0-100)", "anio": "Año", "provincia": "Provincia"},
-            hover_data={"IFFS_B": ":.0f"},
-        )
-        fig_comp.add_vrect(x0=2020, x1=2021, fillcolor="grey", opacity=0.15, line_width=0)
-        fig_comp.update_layout(height=450)
-        st.plotly_chart(fig_comp, width="stretch")
-
-        anio_snapshot = st.select_slider("Año del corte transversal", options=sorted(ANIOS), value=max(ANIOS))
-        snapshot = df_comp[df_comp.anio == anio_snapshot][
-            ["provincia", "IFFS_B", "nivel_alerta", "deuda_sobre_ingresos", "servicio_sobre_ingresos"]
-        ].sort_values("IFFS_B", ascending=False)
-        st.dataframe(vista(snapshot), width="stretch", hide_index=True)
 
 # ---------------------------------------------------------------------------
-# Tab 4: Detalle y explicación automática
+# Ranking
 # ---------------------------------------------------------------------------
-with tab_detalle:
-    st.subheader(f"Detalle — {provincia_foco}")
-    anio_detalle = st.select_slider("Año", options=sorted(ANIOS), value=max(ANIOS), key="anio_detalle")
+with t_rank:
+    a = st.selectbox("Año", sorted(ANIOS, reverse=True), key="anio_rank")
+    d = panel[panel["anio"] == a].dropna(subset=["IFFS"]).sort_values("IFFS")
+    fig = go.Figure()
+    fig.add_bar(y=d["provincia"], x=d["IFFS"], orientation="h", name="IFFS compuesto", marker_color="#d9d8d1",
+                hovertemplate="%{y}: %{x:.1f}<extra>Compuesto</extra>")
+    for dim, sym in zip(ind.DIMS, ["circle", "square", "triangle-up", "diamond"]):
+        fig.add_scatter(y=d["provincia"], x=d[f"S_{dim}"], mode="markers", name=ind.NOMBRE_DIM[dim] + (" (fuera del compuesto)" if dim == "coyuntural" else ""),
+                        marker=dict(color=COLOR_DIM[dim], symbol=sym, size=9, line=dict(color="white", width=1)),
+                        hovertemplate="%{y}: %{x:.0f}<extra>" + ind.NOMBRE_DIM[dim] + "</extra>")
+    fig.update_layout(title=f"IFFS {a}: compuesto (barra) y subíndices (puntos), 0-100 relativo a los pares de ese año", height=680,
+                      xaxis=dict(range=[0, 100], title="Posición relativa 0-100"), legend=dict(orientation="h", y=-0.12))
+    st.plotly_chart(fig, width="stretch")
+    st.caption("Los subíndices se leen contra las demás jurisdicciones del mismo año. Una provincia puede ser 'frágil' por una sola dimensión: mirar los puntos, no solo la barra.")
+    sin = panel[(panel["anio"] == a) & panel["IFFS"].isna()]["provincia"].tolist()
+    if sin:
+        st.info(f"Sin compuesto en {a}: {', '.join(sin)} (falta al menos un subíndice; ver 📥 Datos y cobertura).")
+    piv = panel_f.pivot_table(index="provincia", columns="anio", values="IFFS")
+    piv = piv.loc[piv.mean(axis=1).sort_values(ascending=False).index]
+    fh = px.imshow(piv, color_continuous_scale="YlOrRd", zmin=0, zmax=100, aspect="auto",
+                   title="Mapa de calor del compuesto (celdas vacías = sin dato)", labels=dict(x="Año", y="Provincia", color="IFFS"))
+    fh.update_layout(height=620)
+    st.plotly_chart(fh, width="stretch")
 
-    fila = panel_iffs[(panel_iffs.provincia == provincia_foco) & (panel_iffs.anio == anio_detalle)]
-    if fila.empty or pd.isna(fila["IFFS_B"].iloc[0]):
-        st.warning("No hay datos suficientes para esta combinación de provincia y año.")
-    else:
-        fila = fila.iloc[0]
-        col1, col2, col3 = st.columns(3)
-        col1.metric("IFFS-B", f"{fila['IFFS_B']:.1f} / 100")
-        col2.metric("Nivel de alerta", fila["nivel_alerta"])
-        col3.metric("Deuda / Ingresos", f"{fila['deuda_sobre_ingresos']:.2f}x")
-
-        descomp = ind.descomponer_contribucion(fila)
-        fig_desc = px.bar(
-            descomp, x="percentil", y="dimension", orientation="h",
-            range_x=[0, 100],
-            title=f"Descomposición del IFFS-B — {provincia_foco} ({anio_detalle})",
-            labels={"percentil": "Percentil (0-100, vs. ventana base 2005-2012)", "dimension": "Dimensión"},
-        )
-        fig_desc.update_traces(hovertemplate="%{y}: percentil %{x:.0f}<extra></extra>")
-        st.plotly_chart(fig_desc, width="stretch")
-
-        st.markdown("### 🗣️ Análisis exhaustivo automático")
-        st.caption("Generado por reglas transparentes sobre resultados de ML (k-means, Isolation Forest, tendencia). "
-                   "No usa IA generativa ni APIs: solo redacta cifras efectivamente calculadas.")
-        st.markdown(an.generar_analisis(panel_iffs, provincia_foco, anio_detalle, eventos, info_perfiles, backtest_proy))
-
-        proy = an.proyectar_iffs(panel_iffs[panel_iffs["anio"] <= anio_detalle], provincia_foco)
-        if not proy.empty:
-            hist = panel_iffs[(panel_iffs.provincia == provincia_foco) & (panel_iffs.anio <= anio_detalle)]
-            fig_p = go.Figure()
-            fig_p.add_trace(go.Scatter(x=hist["anio"], y=hist["IFFS_B"], mode="lines+markers", name="IFFS-B observado"))
-            fig_p.add_trace(go.Scatter(x=proy["anio"], y=proy["proyeccion"], mode="lines+markers", name="Proyección (tendencia)",
-                                       line=dict(dash="dash")))
-            fig_p.add_trace(go.Scatter(x=list(proy["anio"]) + list(proy["anio"])[::-1],
-                                       y=list(proy["superior"]) + list(proy["inferior"])[::-1],
-                                       fill="toself", fillcolor="rgba(120,120,120,0.2)", line=dict(width=0), name="Banda ~80%"))
-            fig_p.update_layout(title="Proyección exploratoria a 2 años (no es un pronóstico validado)",
-                                xaxis_title="Año", yaxis_title="IFFS-B (0-100)", height=380)
-            fig_p.update_traces(hovertemplate="Año %{x}: %{y:.0f}<extra>%{fullData.name}</extra>")
-            st.plotly_chart(fig_p, width="stretch")
 
 # ---------------------------------------------------------------------------
-# Tab 5: Perfiles (k-means) y anomalías
+# Evolución
 # ---------------------------------------------------------------------------
-with tab_perfiles:
-    st.subheader("Perfiles fiscales (k-means)")
-    st.caption(
-        f"Agrupa observaciones según *qué dimensiones* pesan, no solo su nivel. k={info_perfiles['k']} elegido por silhouette "
-        f"({info_perfiles['silhouette']:.2f}, estructura moderada) y ajustado solo con la ventana 2005-2012, para no usar "
-        "información futura. Las observaciones con datos faltantes quedan sin perfil (no se imputan)."
-    )
-    anio_perfil = st.select_slider("Año", options=sorted(ANIOS), value=max(ANIOS), key="anio_perfil")
-    col_a, col_b = st.columns([1, 1])
-    with col_a:
-        cent = info_perfiles["centroides"].copy()
-        cent.index = [info_perfiles["nombres"][i] for i in cent.index]
-        fig_c = px.imshow(cent.round(0), color_continuous_scale="RdYlGn_r", zmin=0, zmax=100, aspect="auto", text_auto=True,
-                          title="Centroides: percentil típico de cada perfil por dimensión")
-        st.plotly_chart(fig_c, width="stretch")
-    with col_b:
-        tabla_perfil = panel_iffs[panel_iffs["anio"] == anio_perfil][["provincia", "perfil_nombre", "IFFS_B", "nivel_alerta"]]\
-            .sort_values(["perfil_nombre", "IFFS_B"], ascending=[True, False])
-        st.dataframe(vista(tabla_perfil), width="stretch", hide_index=True, height=420)
+with t_evo:
+    g = panel[(panel.provincia == provincia_foco) & panel.anio.between(*periodo)]
+    fig = go.Figure()
+    for dim in ind.DIMS:
+        fig.add_scatter(x=g["anio"], y=g[f"S_{dim}"], mode="lines", name=ind.NOMBRE_DIM[dim], line=dict(color=COLOR_DIM[dim], width=2))
+    fig.add_scatter(x=g["anio"], y=g["IFFS"], mode="lines+markers", name="Compuesto", line=dict(color="#0b0b0b", width=3.4))
+    fig.add_vrect(x0=2019.5, x1=2021.5, fillcolor="grey", opacity=0.12, line_width=0, annotation_text="eventos 2020-21")
+    fig.update_layout(title=f"{provincia_foco}: subíndices y compuesto (0-100, relativo a los pares de cada año)", height=440, yaxis=dict(range=[0, 100]),
+                      xaxis_title="Año", legend=dict(orientation="h", y=-0.2))
+    st.plotly_chart(fig, width="stretch")
+    ev = eventos[eventos.provincia == provincia_foco]
+    if not ev.empty:
+        st.warning(f"**{provincia_foco}** tiene {len(ev)} evento(s) en la base: " + "; ".join(f"{r.anio_evento} ({r.tipo_evento})" for r in ev.itertuples())
+                   + ". Para 2020 el año es una convención cuando la fuente dice “2020-2021”.")
+    if provincia_foco == "La Pampa":
+        st.info("La Pampa: el stock de deuda 2005-2017 no es confiable (posible error de unidades, sin confirmación oficial); el compuesto no se calcula esos años.")
+    st.markdown("**Razones que componen el índice (valores, no percentiles)**")
+    gr = g.melt(id_vars="anio", value_vars=["deuda_sobre_ingresos", "servicio_sobre_ingresos", "rigidez_gastototal", "fragilidad_resultado"],
+                var_name="variable", value_name="valor")
+    gr["variable"] = gr["variable"].map({"deuda_sobre_ingresos": "Deuda/Ingresos", "servicio_sobre_ingresos": "Servicio/Ingresos",
+                                         "rigidez_gastototal": "Personal/Gasto", "fragilidad_resultado": "−Resultado/Ingresos"})
+    st.plotly_chart(px.line(gr, x="anio", y="valor", color="variable", markers=True).update_layout(height=340, xaxis_title="Año", yaxis_title="Razón"),
+                    width="stretch")
+    nc = val.nivel_comun(panel).loc[periodo[0]:periodo[1]]
+    st.markdown("**Nivel común (mediana de las 24 jurisdicciones)**: lo que el score relativo no puede mostrar")
+    st.plotly_chart(px.line(nc.reset_index().melt(id_vars="anio"), x="anio", y="value", color="variable", facet_col="variable", facet_col_wrap=4)
+                    .update_yaxes(matches=None, showticklabels=True).update_layout(height=280, showlegend=False)
+                    .for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1])), width="stretch")
+    st.caption("Si todas las provincias mejoran o empeoran a la vez, el percentil no cambia pero estas medianas sí (por ejemplo, la mediana de Deuda/Ingresos cae de "
+               f"{R['deriva_solvencia']['mediana_2005']:.2f} en 2005 a {R['deriva_solvencia']['mediana_2024']:.2f} en 2024)." if R else "")
+    if provincias_comparar:
+        dc = panel[panel.provincia.isin(provincias_comparar) & panel.anio.between(*periodo)]
+        st.plotly_chart(px.line(dc, x="anio", y="IFFS", color="provincia", markers=True, title="Comparación del compuesto").update_layout(height=380),
+                        width="stretch")
 
-    st.markdown("**Observaciones inusuales (Isolation Forest, descriptivo):**")
-    anom = panel_iffs[panel_iffs["anomalia"]].sort_values("anomalia_score", ascending=False)[
-        ["provincia", "anio", "IFFS_B", "d_iffs_1a", "nivel_alerta", "anomalia_score"]]
-    st.dataframe(vista(anom), width="stretch", hide_index=True)
-    st.caption("Marca el ~4% de observaciones con combinaciones o saltos poco frecuentes. Es una señal para revisar, no un veredicto.")
-
-# ---------------------------------------------------------------------------
-# Tab 6: Alertas y cambios
-# ---------------------------------------------------------------------------
-with tab_alertas:
-    st.subheader("Alertas tempranas: qué cambió")
-    anio_alerta = st.select_slider("Año a analizar", options=sorted(ANIOS)[1:], value=max(ANIOS), key="anio_alerta")
-    cambios = an.ranking_cambios(panel_iffs, anio_alerta)
-    empeoraron = cambios[cambios["cambio_nivel"] == "Empeoró"]
-    if not empeoraron.empty:
-        st.error("**Subieron de nivel de alerta:** " + "; ".join(
-            f"{r.provincia} ({r.nivel_anterior} → {r.nivel_alerta}, {r.d_iffs_1a:+.1f} pts, motor: {r.dimension_motor})"
-            for r in empeoraron.itertuples()))
-    else:
-        st.success("Ninguna jurisdicción subió de nivel de alerta este año.")
-    n_emp = int((cambios["d_iffs_1a"] > 0).sum())
-    med = lambda y: panel_iffs.loc[panel_iffs["anio"] == y, "D_resultado_fiscal_pct_ingresos"].median() * 100
-    if n_emp >= 0.75 * len(cambios):
-        st.warning(
-            f"**Ojo con la lectura:** {n_emp} de {len(cambios)} jurisdicciones empeoran a la vez, lo que apunta a un movimiento común "
-            f"y no a {n_emp} problemas individuales. La mediana de resultado/ingresos pasó de {med(anio_alerta - 1):+.1f}% a "
-            f"{med(anio_alerta):+.1f}%: buena parte del cambio viene del resultado fiscal (un año previo atípico) y no de la deuda. "
-            "Los datos del último año pueden ser preliminares."
-        )
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("**Mayor deterioro (Δ IFFS-B, 1 año)**")
-        st.dataframe(vista(cambios.head(6)[["provincia", "IFFS_B", "d_iffs_1a", "nivel_alerta", "dimension_motor"]]),
-                     width="stretch", hide_index=True)
-    with c2:
-        st.markdown("**Mayor mejora**")
-        st.dataframe(vista(cambios.tail(6).iloc[::-1][["provincia", "IFFS_B", "d_iffs_1a", "nivel_alerta", "dimension_motor"]]),
-                     width="stretch", hide_index=True)
-    d_ch = cambios.sort_values("d_iffs_1a").copy()
-    d_ch["etiqueta"] = d_ch["d_iffs_1a"].map(lambda v: "0" if round(v) == 0 else f"{v:+.0f}")  # evita "-0" / "+0"
-    fig_ch = px.bar(d_ch, x="d_iffs_1a", y="provincia", orientation="h", text="etiqueta", custom_data=["etiqueta"],
-                    color="d_iffs_1a", color_continuous_scale="RdYlGn_r", color_continuous_midpoint=0,
-                    title=f"Variación del IFFS-B respecto de {anio_alerta - 1}",
-                    labels={"d_iffs_1a": "Δ puntos", "provincia": "Provincia"})
-    fig_ch.update_traces(hovertemplate="%{y}: %{customdata[0]} puntos<extra></extra>", textposition="outside")
-    fig_ch.update_layout(height=620, coloraxis_showscale=False)
-    st.plotly_chart(fig_ch, width="stretch")
-    st.caption("Δ = IFFS-B(t) − IFFS-B(t−1). \"Motor\" = la dimensión cuyo percentil más se movió. "
-               "Variaciones grandes pueden deberse a cambios en un solo componente (p. ej. el resultado fiscal).")
 
 # ---------------------------------------------------------------------------
-# Tab 7: Simulador de escenarios
+# Detalle
 # ---------------------------------------------------------------------------
-with tab_simulador:
+with t_det:
+    a = st.select_slider("Año", options=ANIOS, value=max(ANIOS), key="anio_det")
+    fila = panel[(panel.provincia == provincia_foco) & (panel.anio == a)]
+    f = fila.iloc[0]
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("IFFS compuesto", "s/d" if pd.isna(f["IFFS"]) else f"{f['IFFS']:.1f}")
+    c2.metric("Posición (cuartil del año)", str(f["posicion"]).split(" (")[0])
+    c3.metric("Deuda / Ingresos", "s/d" if pd.isna(f["deuda_sobre_ingresos"]) else f"{f['deuda_sobre_ingresos']:.2f}x")
+    c4.metric("Estado del stock de deuda", {"confiable": "confiable", "no_confiable_excluido": "no confiable (excluido)", "supuesto_miles": "SUPUESTO ÷1.000", "sin_dato": "sin dato"}.get(f["stock_estado"], f["stock_estado"]))
+    dc = ind.descomponer_contribucion(f)
+    figd = px.bar(dc, x="subindice", y="dimension", orientation="h", range_x=[0, 100], text_auto=".0f", color="en_compuesto",
+                  color_discrete_map={True: "#2a78d6", False: "#b3b0a6"},
+                  title=f"Subíndices de {provincia_foco} en {a} (azul = entra al compuesto; gris = solo informativo)", labels={"subindice": "0-100", "dimension": ""})
+    figd.update_layout(height=300, showlegend=False)
+    st.plotly_chart(figd, width="stretch")
+    st.caption("En el compuesto cada dimensión nuclear aporta S/3 (media simple). La dimensión coyuntural no aporta.")
+    st.markdown("#### Análisis automático (motor de reglas: solo redacta cifras calculadas)")
+    st.markdown(an.generar_analisis(panel, provincia_foco, a, eventos, info_perfiles, backtest))
+
+
+# ---------------------------------------------------------------------------
+# Validación
+# ---------------------------------------------------------------------------
+with t_val:
+    if R is None:
+        st.stop()
+    st.markdown("## Validación: tres preguntas distintas")
+    st.info("**Descripción** (¿qué muestra?) · **Discriminación** (¿el grupo con evento tenía un score más alto en una fecha?) · **Anticipación** (¿el score *subió* antes del evento?). "
+            "Que valga la segunda no implica la tercera. Todo es exploratorio: 13 eventos, 12 en el mismo shock, año ancla convencional para 11.")
+    st.markdown("### 1. Discriminación en 2019 (T−1 del ancla 2020)")
+    disc = TAB["T07_discriminacion_2019"].copy()
+    disc["AUC"] = disc["auc"].round(2)
+    disc["IC 95%"] = disc.apply(lambda r: f"{r['ic95_inf']:.2f}–{r['ic95_sup']:.2f}", axis=1)
+    disc["p permutación (unilateral)"] = disc["p_perm_unilateral"].map(lambda p: "< 0,001" if p < 0.001 else f"{p:.3f}".replace(".", ","))
+    st.dataframe(disc[["medida", "AUC", "IC 95%", "p permutación (unilateral)", "n_evento", "n_control"]].rename(columns={"medida": "Medida"}), hide_index=True, width="stretch")
+    st.caption(f"AUC = probabilidad de que una provincia con evento tenga un score mayor que una sin evento (0,5 = azar). Con grupos de 12 vs. 12, sorteando los grupos al azar el AUC supera "
+               f"{R['azar_auc_2019']['azar_p95']:.2f} solo el 5% de las veces. **El % de bonos en la deuda (variable trivial) discrimina casi igual que el índice.** "
+               f"Solo entre emisoras de bonos (≥{R['condicionado_a_bonos_2019']['min_bonos_pct']:.0f}%: {R['condicionado_a_bonos_2019']['n_evento']} con evento vs. {R['condicionado_a_bonos_2019']['n_control']} sin evento: "
+               f"{', '.join(R['condicionado_a_bonos_2019']['controles'])}) el AUC del compuesto es {R['condicionado_a_bonos_2019']['auc_IFFS']:.2f}, con poder casi nulo por el tamaño del grupo control.")
+    st.markdown("### 2. ¿Cuándo aparece la separación? (placebo temporal)")
+    pt = TAB["T09_placebo_temporal"]
+    fig = go.Figure()
+    p1 = pt[pt.medida == "IFFS"]
+    fig.add_scatter(x=list(p1["anio"]) + list(p1["anio"])[::-1], y=list(p1["ic95_sup"]) + list(p1["ic95_inf"])[::-1], fill="toself", fillcolor="rgba(42,120,214,.15)",
+                    line=dict(width=0), name="IC 95% IFFS", hoverinfo="skip")
+    fig.add_scatter(x=p1["anio"], y=p1["auc"], mode="lines+markers", name="IFFS compuesto", line=dict(color="#2a78d6", width=3))
+    p2 = pt[pt.medida == "pct_bonos"]
+    fig.add_scatter(x=p2["anio"], y=p2["auc"], mode="lines+markers", name="% de bonos en la deuda", line=dict(color="#d03b3b", dash="dash"))
+    fig.add_hline(y=0.5, line_dash="dot", line_color="grey", annotation_text="azar")
+    fig.add_vrect(x0=2019.5, x1=2021.5, fillcolor="grey", opacity=0.12, line_width=0, annotation_text="eventos")
+    fig.update_layout(title="AUC año por año: las mismas 12 provincias vs. el resto", height=400, xaxis_title="Año en que se mide el score", yaxis=dict(range=[0.3, 1.02], title="AUC"))
+    st.plotly_chart(fig, width="stretch")
+    pv = R["placebo_temporal"]
+    st.caption(f"**Lectura.** El AUC ya vale {pv['auc_iffs_por_anio']['2012']:.2f} en 2012, {pv['auc_iffs_por_anio']['2015']:.2f} en 2015 y {pv['auc_iffs_por_anio']['2019']:.2f} en 2019, "
+               f"y llega a {pv['auc_iffs_por_anio']['2025']:.2f} en 2025, *después* de los eventos. El grupo es persistentemente más frágil desde hace más de una década: "
+               "**eso es discriminación de un rasgo persistente, no una señal de alerta que aparezca antes del shock.**")
+    st.markdown("### 3. Rezagos T−1 … T−5 (y sensibilidad al año ancla)")
+    rez = TAB["T08_discriminacion_por_rezago"]
+    rz = rez[rez.medida.isin(["IFFS", "solvencia", "liquidez", "bonos_pct"])].copy()
+    rz["AUC [IC95%]"] = rz.apply(lambda r: f"{r['auc']:.2f} [{r['ic95_inf']:.2f}–{r['ic95_sup']:.2f}]", axis=1)
+    tabla_rz = rz.pivot_table(index=["ancla", "medida"], columns="rezago", values="AUC [IC95%]", aggfunc="first")
+    tabla_rz.columns = [f"T−{c}" for c in tabla_rz.columns]
+    st.dataframe(tabla_rz, width="stretch")
+    st.caption("Anclaje 2020 = convención (fuente: “2020-2021”); anclaje alternativo = 2021 para los 11 eventos de fecha ambigua. La conclusión no cambia con el anclaje.")
+    st.markdown("### 4. Anticipación: ¿el score subió antes del evento más que en el resto?")
+    pre = TAB["T10_pretendencia"]
+    pre = pre[pre.ancla == "principal"].copy()
+    pre["Medida"] = pre["col"].map({"IFFS": "Compuesto", "S_solvencia": "Solvencia", "S_liquidez": "Liquidez", "S_estructural": "Estructural", "S_coyuntural": "Coyuntural"})
+    pre["Ventana"] = pre["desde"] + " → " + pre["hasta"]
+    pre["Diferencia de cambios (pts) [IC95%]"] = pre.apply(lambda r: f"{r['diferencia']:+.1f} [{r['ic95_inf']:+.1f}; {r['ic95_sup']:+.1f}]", axis=1)
+    pre["p (permutación)"] = pre["p_perm_bilateral"].map(lambda p: f"{p:.2f}".replace(".", ","))
+    st.dataframe(pre[["Medida", "Ventana", "cambio_medio_evento", "cambio_medio_control", "Diferencia de cambios (pts) [IC95%]", "p (permutación)"]]
+                 .rename(columns={"cambio_medio_evento": "Δ con evento", "cambio_medio_control": "Δ resto"}).round(2), hide_index=True, width="stretch")
+    es = TAB["T11_estudio_eventos"]
+    fe = go.Figure()
+    fe.add_scatter(x=es["tau"], y=es["media_evento"], name="Con evento 2020-21", line=dict(color="#d03b3b", width=3), mode="lines+markers")
+    fe.add_scatter(x=es["tau"], y=es["media_control"], name="Resto", line=dict(color="#52514e", width=3), mode="lines+markers")
+    fe.add_vline(x=0, line_dash="dot", line_color="grey")
+    fe.update_layout(title="Estudio de eventos: IFFS medio por años respecto del ancla (τ = 0 ↔ 2020, convención)", height=380, xaxis_title="τ", yaxis_title="IFFS medio")
+    st.plotly_chart(fe, width="stretch")
+    ps = R["pretendencia"]["principal|S_solvencia|T-5->T-1"]
+    st.caption(f"Ninguna diferencia es significativa por permutación al 5%. El IC bootstrap de solvencia T−5→T−1 apenas excluye el cero ({ps['ic95'][0]:+.1f}) pero p = {ps['p']:.2f}, y es una de 10 comparaciones sin corregir: indicio débil, no evidencia. Con una sola fecha común no hay contrafactual temporal: "
+               "no se puede separar 'ya era más frágil' de 'se estaba deteriorando'.")
+    st.markdown("### 5. Un caso fuera del bloque COVID: La Rioja 2025 (default del Bono Verde, feb-2025)")
+    lr = TAB["T12_la_rioja_2025"].round(1)
+    lr.columns = ["Año", "Solvencia", "Liquidez", "Estructural", "Coyuntural", "IFFS", "Puesto (1 = más frágil)", "Jurisdicciones con dato"]
+    st.dataframe(lr, hide_index=True, width="stretch")
+    st.caption("Una sola observación: sirve para mostrar la trayectoria, no para estimar aciertos. En 2024 La Rioja estaba en el puesto 7 de 24 con solvencia alta.")
+    st.markdown("### 6. Pruebas que NO se corren y por qué")
+    st.dataframe(TAB["T13_pruebas_no_viables"].rename(columns={"prueba": "Prueba", "por_que_no_es_viable": "Por qué no es viable"}), hide_index=True, width="stretch")
+
+
+# ---------------------------------------------------------------------------
+# Robustez
+# ---------------------------------------------------------------------------
+with t_rob:
+    if R is None:
+        st.stop()
+    st.markdown("### Sensibilidad del ordenamiento a cada decisión de diseño (una a la vez)")
+    sp = TAB["T05_comparacion_especificaciones"].copy()
+    sp = sp.merge(TAB["T19_auc_2019_todas_las_especificaciones"][["especificacion", "auc_2019"]], on="especificacion", how="left")
+    st.dataframe(sp.rename(columns={
+        "especificacion": "Especificación", "n_obs": "Obs.", "spearman_vs_principal": "ρ de Spearman vs. principal", "deriva_mediana_anual": "Deriva de la mediana anual (pts)",
+        "persistencia_rangos": "Persistencia de rangos", "cambio_rango_medio": "Cambio medio de puesto", "obs_con_cambio_rango_ge5": "Obs. con cambio ≥ 5 puestos",
+        "solapamiento_top6_2024": "Top-6 de 2024 en común", "auc_2019": "AUC 2019 (info. no usada para elegir)"}).round(3), hide_index=True, width="stretch")
+    a1 = R["auc_2019_especificaciones"]
+    st.caption(f"Las {a1['n']} especificaciones se reportan completas; ninguna se eligió por su AUC (rango {a1['min']:.2f}–{a1['max']:.2f}). "
+               "La normalización principal se eligió por estacionariedad, ausencia de información futura y robustez a outliers (ver docs/METODOLOGIA.md).")
+    st.plotly_chart(px.bar(sp.iloc[1:].sort_values("spearman_vs_principal"), x="spearman_vs_principal", y="especificacion", orientation="h",
+                           range_x=[0.8, 1.0], labels={"spearman_vs_principal": "ρ de Spearman vs. principal", "especificacion": ""})
+                    .update_layout(height=520), width="stretch")
+    w = R["pesos_aleatorios"]
+    st.markdown(f"**Pesos aleatorios ({w['n_sim']:,} sorteos uniformes sobre las 3 dimensiones):** correlación media con el ordenamiento de pesos iguales, mediana {w['spearman_medio_mediana']:.2f} "
+                f"(percentil 5: {w['spearman_medio_p05']:.2f}); el {100 * w['cuartil_superior_estable_ge80']:.0f}% de las observaciones del cuartil superior se mantiene ahí en ≥80% de los sorteos.")
+    st.markdown("### La Pampa: efecto del tratamiento del stock 2005-2017 sobre las demás provincias")
+    slp = TAB["T17_sensibilidad_la_pampa"].round(2)
+    st.dataframe(slp.rename(columns={"normalizacion": "Normalización", "tratamiento_vs_excluir": "Tratamiento (vs. excluir)",
+                                     "cambio_medio_abs_subindice_solvencia_resto": "Cambio medio del subíndice de solvencia del resto (pts)",
+                                     "cambio_max_abs": "Máx.", "spearman_solvencia_resto": "ρ de Spearman"}), hide_index=True, width="stretch")
+    lp = R["la_pampa"]
+    ef = lp["efecto_sobre_resto"]
+    st.caption(f"Con percentiles (corte anual), un error de unidades como el de La Pampa sin tratar mueve el subíndice de solvencia del resto {ef['corte_anual|sin_tratar']:.1f} puntos en promedio; "
+               f"con z-score de base fija, {ef['zscore_base|sin_tratar']:.1f}. Ésa es una de las razones para no usar z-scores.")
+    st.markdown(f"Escenario ÷1.000 (**supuesto**): el IFFS de La Pampa 2005-2017 quedaría entre {lp['escenario_supuesto_miles']['iffs_la_pampa_min']} y {lp['escenario_supuesto_miles']['iffs_la_pampa_max']}, "
+                f"y el AUC año por año cambia como máximo {lp['escenario_supuesto_miles']['dif_max_auc_placebo_2005_2017']:.2f}.")
+
+
+# ---------------------------------------------------------------------------
+# Perfiles y cambios
+# ---------------------------------------------------------------------------
+with t_perf:
+    st.subheader("Perfiles fiscales (k-means, descriptivo)")
+    st.caption(f"k={info_perfiles['k']} por silhouette ({info_perfiles['silhouette']:.2f}: estructura moderada), ajustado con 2005-2012 sobre los 4 subíndices. Sin perfil si falta algún subíndice.")
+    a = st.select_slider("Año", options=ANIOS, value=max(ANIOS), key="anio_perf")
+    cent = info_perfiles["centroides"].copy()
+    cent.index = [info_perfiles["nombres"][i] for i in cent.index]
+    st.plotly_chart(px.imshow(cent.round(0), color_continuous_scale="YlOrRd", zmin=0, zmax=100, text_auto=True, aspect="auto",
+                              title="Centroides: subíndice típico de cada perfil"), width="stretch")
+    tp = panel[panel.anio == a][["provincia", "perfil_nombre", "IFFS", "posicion"]].sort_values(["perfil_nombre", "IFFS"], ascending=[True, False]).round(1)
+    st.dataframe(tp.rename(columns={"provincia": "Provincia", "perfil_nombre": "Perfil", "posicion": "Posición"}), hide_index=True, width="stretch")
+    st.subheader("Cambios de posición")
+    a2 = st.select_slider("Año a analizar", options=ANIOS[1:], value=max(ANIOS), key="anio_cambio")
+    cam = an.ranking_cambios(panel, a2)
+    sube = cam[cam["cambio_cuartil"] == "Subió de cuartil"]
+    if len(sube):
+        st.error("**Subieron de cuartil:** " + "; ".join(f"{r.provincia} ({r.d_iffs_1a:+.1f} pts, motor: {r.dimension_motor})" for r in sube.itertuples()))
+    n_emp = int((cam["d_iffs_1a"] > 0).sum())
+    if n_emp >= 0.75 * len(cam):
+        st.warning(f"{n_emp} de {len(cam)} jurisdicciones suben a la vez: el compuesto es relativo, así que un movimiento común apunta a un cambio en la escala del cuartil más que en cada provincia.")
+    st.dataframe(cam.round(1).rename(columns={"provincia": "Provincia", "d_iffs_1a": "Δ 1 año", "d_iffs_3a": "Δ 3 años", "posicion_anterior": "Posición anterior",
+                                              "posicion": "Posición", "cambio_cuartil": "Cambio", "dimension_motor": "Subíndice que más se movió"}),
+                 hide_index=True, width="stretch")
+    st.subheader("Observaciones inusuales (Isolation Forest, descriptivo)")
+    an_df = panel[panel["anomalia"]].sort_values("anomalia_score", ascending=False)[["provincia", "anio", "IFFS", "d_iffs_1a", "anomalia_score"]].round(2)
+    st.dataframe(an_df, hide_index=True, width="stretch")
+    if backtest.get("n"):
+        st.caption(f"Extrapolar tendencias no mejora a repetir el último valor (backtest a 1 año, {backtest['n']} casos: error medio {backtest['mae_tendencia']:.1f} vs. {backtest['mae_ingenua']:.1f} puntos). "
+                   "Por eso la proyección se muestra solo en el análisis automático, con esa advertencia.")
+
+
+# ---------------------------------------------------------------------------
+# Simulador
+# ---------------------------------------------------------------------------
+with t_sim:
     st.subheader(f"Simulador de escenarios — {provincia_foco}")
-    st.caption("Sensibilidad **mecánica** del IFFS-B ante shocks sobre el año elegido. No es un pronóstico: "
-               "mantiene constante el gasto y compara contra la misma escala base 2005-2012.")
-    anio_sim = st.select_slider("Año base", options=sorted(ANIOS), value=max(ANIOS), key="anio_sim")
+    st.caption("Sensibilidad **mecánica** (no pronóstico): recalcula los subíndices con el shock y compara contra las demás jurisdicciones del mismo año, que quedan fijas.")
+    a = st.select_slider("Año base", options=ANIOS, value=max(ANIOS), key="anio_sim")
     s1, s2, s3 = st.columns(3)
     caida = s1.slider("Caída de ingresos corrientes (%)", 0, 40, 10)
-    deprec = s2.slider("Depreciación del peso (%)", 0, 200, 0, help="Solo afecta a provincias con dato de composición por moneda (último dato 2014-2020).")
+    deprec = s2.slider("Depreciación del peso (%)", 0, 200, 0, help="Solo afecta a provincias con dato de composición por moneda (11 de 24; último dato 2014-2020).")
     serv = s3.slider("Suba del servicio de deuda (%)", 0, 100, 0, help="Cota superior: se aplica al servicio total (capital + interés).")
-    r = an.simular_escenario(panel_iffs, provincia_foco, anio_sim, caida / 100, deprec / 100, serv / 100)
+    r = an.simular_escenario(panel, provincia_foco, a, caida / 100, deprec / 100, serv / 100)
     if "error" in r or pd.isna(r.get("iffs_base")):
-        st.warning("No hay datos suficientes para simular esta provincia y año.")
+        st.warning("No hay datos suficientes para simular esta provincia y año (falta algún subíndice del compuesto).")
     else:
         m1, m2, m3 = st.columns(3)
-        m1.metric("IFFS-B base", f"{r['iffs_base']:.1f}", r["nivel_base"])
-        m2.metric("IFFS-B escenario", f"{r['iffs_escenario']:.1f}", f"{r['delta']:+.1f} pts", delta_color="inverse")
-        m3.metric("Nivel de alerta", r["nivel_escenario"], "sin cambio" if r["nivel_escenario"] == r["nivel_base"] else f"desde {r['nivel_base']}", delta_color="off")
-        dims = pd.DataFrame({
-            "Dimensión": [NOMBRE for NOMBRE in an.NOMBRE_DIM.values()],
-            "Base": list(r["percentiles_base"].values()),
-            "Escenario": list(r["percentiles_escenario"].values()),
-        }).melt(id_vars="Dimensión", var_name="Situación", value_name="Percentil")
-        fig_s = px.bar(dims, x="Percentil", y="Dimensión", color="Situación", barmode="group", orientation="h", range_x=[0, 100],
-                       title="Percentil por dimensión: base vs. escenario", text_auto=".0f")
-        fig_s.update_traces(hovertemplate="%{y} (%{fullData.name}): percentil %{x:.0f}<extra></extra>")
-        st.plotly_chart(fig_s, width="stretch")
-        rat = r["ratios"]
-        st.write(f"Deuda/Ingresos: **{rat['deuda_sobre_ingresos'][0]:.2f}x → {rat['deuda_sobre_ingresos'][1]:.2f}x**")
+        m1.metric("IFFS base", f"{r['iffs_base']:.1f}", str(r["posicion_base"]).split(" (")[0], delta_color="off")
+        m2.metric("IFFS escenario", f"{r['iffs_escenario']:.1f}", f"{r['delta']:+.1f} pts", delta_color="inverse")
+        m3.metric("Posición", str(r["posicion_escenario"]).split(" (")[0], "sin cambio" if r["posicion_escenario"] == r["posicion_base"] else f"desde {str(r['posicion_base']).split(' (')[0]}", delta_color="off")
+        dims = pd.DataFrame({"Subíndice": list(an.NOMBRE_DIM.values()), "Base": list(r["subindices_base"].values()), "Escenario": list(r["subindices_escenario"].values())}) \
+            .melt(id_vars="Subíndice", var_name="Situación", value_name="0-100")
+        st.plotly_chart(px.bar(dims, x="0-100", y="Subíndice", color="Situación", barmode="group", orientation="h", range_x=[0, 100], text_auto=".0f"), width="stretch")
+        st.write(f"Deuda/Ingresos: **{r['ratios']['deuda_sobre_ingresos'][0]:.2f}x → {r['ratios']['deuda_sobre_ingresos'][1]:.2f}x**")
         if r["fx_solicitado_sin_dato"]:
-            st.warning("Esta provincia no tiene composición de deuda por moneda en la base: la depreciación no se aplicó.")
+            st.warning("Esta provincia no tiene composición de deuda por moneda: la depreciación no se aplicó.")
         elif r["fx_aplicado"]:
-            st.info(f"Depreciación aplicada con {r['fx_share']*100:.0f}% de deuda en moneda extranjera (último dato: {r['fx_anio']}).")
+            st.info(f"Depreciación aplicada con {r['fx_share'] * 100:.0f}% de deuda en moneda extranjera (último dato: {r['fx_anio']}).")
+
 
 # ---------------------------------------------------------------------------
-# Tab 8: Datos y descarga
+# Datos y cobertura
 # ---------------------------------------------------------------------------
-with tab_datos:
+with t_dat:
+    st.subheader("Cobertura: qué hay y qué falta")
+    if R:
+        c = R["cobertura"]
+        st.markdown(f"Compuesto calculado en **{c['n_compuesto']} de {c['n_total']}** provincia-año ({c['pct_compuesto']}%). Faltantes: "
+                    + "; ".join(f"**{k}** {v}" for k, v in c["faltantes_compuesto"].items()) + ". Ninguno se imputa.")
+    ok = panel.pivot(index="provincia", columns="anio", values="IFFS").notna().astype(int)
+    st.plotly_chart(px.imshow(ok, color_continuous_scale=[[0, "#c3c2b7"], [1, "#2a78d6"]], aspect="auto", zmin=0, zmax=1,
+                              title="Compuesto disponible (azul) vs. faltante (gris)").update_layout(coloraxis_showscale=False, height=520), width="stretch")
+    if "T01_cobertura_por_provincia" in TAB:
+        st.dataframe(TAB["T01_cobertura_por_provincia"].rename(columns={"provincia": "Provincia"}), hide_index=True, width="stretch")
     st.subheader("Tabla filtrada")
-    columnas_mostrar = [
-        "provincia", "anio", "deuda_sobre_ingresos", "servicio_sobre_ingresos",
-        "rigidez_gastototal", "fragilidad_resultado", "IFFS_A", "IFFS_B", "IFFS_C", "nivel_alerta",
-    ]
-    tabla = panel_filtrado[columnas_mostrar].sort_values(["provincia", "anio"])
-    st.dataframe(vista(tabla), width="stretch", hide_index=True)
-    st.download_button(
-        "⬇️ Descargar tabla filtrada (CSV)",
-        data=vista(tabla).to_csv(index=False).encode("utf-8-sig"),
-        file_name=f"iffs_filtrado_{periodo[0]}_{periodo[1]}.csv",
-        mime="text/csv",
-    )
-
-    st.markdown("---")
-    st.caption(
-        "Metodología completa, validación y limitaciones documentadas en "
-        "`notebooks/fragilidad_fiscal_provincial.ipynb` e `informe/informe_fragilidad_fiscal.pdf`. "
-        f"Varianza explicada del PCA (IFFS-C): {meta_iffs['varianza_explicada_pc1']*100:.1f}%."
-    )
+    cols = ["provincia", "anio", "deuda_sobre_ingresos", "servicio_sobre_ingresos", "rigidez_gastototal", "fragilidad_resultado",
+            "S_solvencia", "S_liquidez", "S_estructural", "S_coyuntural", "IFFS", "posicion", "stock_estado"]
+    tabla = panel_f[cols].sort_values(["provincia", "anio"]).round(3)
+    st.dataframe(tabla, hide_index=True, width="stretch")
+    st.download_button("⬇️ Descargar tabla filtrada (CSV)", tabla.to_csv(index=False).encode("utf-8-sig"),
+                       file_name=f"iffs_v2_{periodo[0]}_{periodo[1]}.csv", mime="text/csv")
+    st.subheader("Limitaciones")
+    st.markdown(
+        "- **La Pampa 2005-2017**: stock de deuda no confiable, sin confirmación oficial (faltante en el principal; sensibilidad ÷1.000 = supuesto).\n"
+        "- **Score relativo**: si todas mejoran o empeoran a la vez, no se ve (mirar el nivel común). No es probabilidad de default.\n"
+        "- **13 eventos**, 12 en el mismo shock; 11 con año ancla convencional. No hay validación predictiva.\n"
+        "- **Stock/flujo**: Deuda a 31/12 sobre ingresos del año sobrestima la razón con inflación alta.\n"
+        "- **Faltan**: deuda flotante, garantías, vencimientos futuros, moneda de la deuda (solo 11 de 24 provincias).\n"
+        "- **Saltos de servicio** (Santa Cruz 2024-25, San Luis) resueltos con la identidad stock-flujo: son amortizaciones reales. Solo La Pampa 2024 (stock = 500) no es verificable y no cambia ningún puesto.\n"
+        "- Los paneles base son derivados de las fuentes de la DNAP y el BCRA; no se reprocesan aquí.")
+    st.caption(f"Metodología: docs/METODOLOGIA.md · Notebook: notebooks/fragilidad_fiscal_provincial.ipynb · Huella del código y datos: {HUELLA[:10]}")

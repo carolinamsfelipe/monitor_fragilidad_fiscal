@@ -1,173 +1,113 @@
-# Monitor de Fragilidad Fiscal Provincial
+# Monitor de Fragilidad Fiscal Provincial — IFFS v2
 
-Sistema de evaluación y alerta temprana para las 24 jurisdicciones argentinas
-(23 provincias + CABA). Segundo Parcial — Programación para Economistas.
+Índice de Fragilidad Fiscal Subnacional para las 24 jurisdicciones argentinas (23 provincias + CABA), 2005-2025.
+Segundo Parcial — Programación para Economistas (UADE).
 
-> Herramienta de **apoyo al análisis económico**, no un mecanismo de
-> predicción de default. Cada decisión metodológica (qué variables entran al
-> índice, cómo se normalizan, qué umbrales alertan, por qué no hay un modelo
-> predictivo formal) está documentada explícitamente en el notebook.
+> **Qué es:** una herramienta de apoyo al análisis que ordena a las jurisdicciones por su fragilidad fiscal **relativa** (percentil dentro de cada año),
+> con cuatro subíndices y un compuesto. **Qué no es:** una probabilidad de default, un sistema de alerta calibrado ni un modelo predictivo.
+> Con 13 eventos (12 en el mismo shock) los datos no permiten validar capacidad predictiva; lo que se muestra es descripción y discriminación exploratoria.
 
----
+Estado del proyecto para continuar en otro chat: [`ESTADO.md`](ESTADO.md) · Metodología completa: [`docs/METODOLOGIA.md`](docs/METODOLOGIA.md) · Auditoría de datos: [`docs/FASE1_AUDITORIA.md`](docs/FASE1_AUDITORIA.md).
 
-## 1. Estructura del proyecto
+## 1. Resultados principales (generados desde `outputs/resultados_clave.json`)
+
+<!-- RESULTADOS:INICIO -->
+| Qué | Resultado | Tipo |
+|---|---|---|
+| Cobertura del compuesto | **490 de 504** provincia-año (97,2%); faltan La Pampa 2005-2017 (stock no confiable) y 2025 (sin ejecución) | Evidencia |
+| Diseño | 4 subíndices; compuesto = solvencia + liquidez + estructural. El resultado fiscal queda afuera (persistencia de rangos 0,48 < 0,85) | Evidencia + diseño |
+| Normalización | Percentil dentro de cada año. La mediana de Deuda/Ingresos cae de 1,14 (2005) a 0,31 (2012) y 0,15 (2024): la base fija 2005-2012 no es estacionaria | Evidencia |
+| Robustez | ρ de Spearman con el principal entre 0,88 y 0,99 frente a normalización, ventanas, pesos y agregación; con 2.000 pesos aleatorios, mediana 0,94 | Evidencia |
+| Discriminación (2019) | AUC **0,93** [IC 95%: 0,81–1,00] para separar a las 12 provincias con evento 2020-21 de las otras 12; el azar supera 0,70 solo el 5% de las veces | Evidencia |
+| …pero | El % de bonos en la deuda logra AUC 0,87 [0,68–1,00]. El grupo ya se separaba en 2012 (AUC 0,87) y sigue separado en 2025 (AUC 0,98) | Evidencia → interpretación: rasgo persistente, no anticipación |
+| Anticipación | Cambio del compuesto T−5→T−1: +5,2 puntos [−2,6; +13,5] entre provincias con evento y resto (p = 0,28): sin evidencia de deterioro previo distinto | Evidencia + limitación (potencia baja) |
+| Predicción | No viable: 0 eventos antes de 2020, 13 en total, 12 simultáneos, 11 con año ancla convencional | Limitación |
+<!-- RESULTADOS:FIN -->
+
+## 2. Estructura del proyecto
 
 ```
 parcial2_monitor_fragilidad_fiscal/
-├── README.md                          <- este archivo
-├── requirements.txt                   <- solo lo que necesita el dashboard (lo lee Streamlit Cloud)
-├── requirements-notebook.txt          <- notebook + regenerar informe/presentación
-├── .streamlit/config.toml
-├── app.py                             <- dashboard interactivo (Streamlit)
-├── notebooks/
-│   └── fragilidad_fiscal_provincial.ipynb   <- desarrollo completo
-├── data/
-│   ├── raw/base_investigacion/        <- paneles base ya auditados (ver Sección 3)
-│   └── processed/                     <- panel con el IFFS calculado (generado por el notebook)
+├── README.md · ESTADO.md
+├── app.py                      dashboard Streamlit (lee outputs/ y src/)
+├── requirements.txt            solo el dashboard (lo lee Streamlit Cloud)
+├── requirements-notebook.txt   notebook + tests + informe/presentación
 ├── src/
-│   ├── data_processing.py             <- carga, validación, panel maestro
-│   ├── indicators.py                  <- construcción del índice IFFS
-│   ├── modeling.py                    <- alertas por reglas + modelo exploratorio
-│   ├── analytics.py                   <- IA sin costo: perfiles, anomalías, proyección, simulador, análisis automático
-│   └── visualization.py               <- gráficos reutilizables
-├── outputs/
-│   ├── figures/                       <- figuras generadas automáticamente
-│   └── tables/                        <- tablas generadas automáticamente
-├── informe/
-│   └── informe_fragilidad_fiscal.pdf  <- informe (2 páginas, máx. 3)
-└── presentacion/
-    └── presentacion_fragilidad_fiscal.pptx  <- 10 diapositivas + notas del orador
+│   ├── data_processing.py      carga, validación, tratamientos (CABA, La Pampa), panel maestro 24x21
+│   ├── indicators.py           IFFS v2: subíndices, normalizaciones, agregaciones, IFFS v1 (legado)
+│   ├── validation.py           criterios de diseño, robustez, discriminación, anticipación, pruebas no viables
+│   ├── analytics.py            perfiles (k-means), anomalías, backtest, simulador, análisis automático
+│   ├── modeling.py             base de eventos y demostración de por qué no hay modelo predictivo
+│   ├── pipeline.py             punto de entrada único (huella de código+datos)
+│   └── visualization.py        gráficos
+├── scripts/
+│   ├── generar_resultados.py   FUENTE ÚNICA de cifras (tablas, figuras, resultados_clave.json)
+│   ├── construir_notebook.py   genera y ejecuta el notebook
+│   └── generar_entregables.py  README (bloque de resultados), informe PDF y presentación PPTX
+├── auditoria/                  fase1_auditoria.py (datos) y fase2_servicio_y_unidades.py (identidad stock-flujo); escriben outputs/auditoria/
+├── tests/test_iffs.py          17 pruebas automáticas
+├── notebooks/fragilidad_fiscal_provincial.ipynb
+├── informe/informe_fragilidad_fiscal.pdf         (3 páginas)
+├── presentacion/presentacion_fragilidad_fiscal.pptx   (9 diapositivas con notas)
+├── data/raw/                   paneles base y fuentes DNAP (CABA, La Pampa); data/processed/ panel con el índice
+└── outputs/                    tables/ · figures/ · auditoria/ · resultados_clave.json · _historico_v1/ (versión anterior, archivada)
 ```
 
-## 2. Cómo ejecutar
-
-### Requisitos
-
-- Python 3.10+
-- (Recomendado) un entorno virtual limpio
+## 3. Cómo reproducir
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements-notebook.txt   # notebook + dashboard + informe/pptx
-# (solo el dashboard: pip install -r requirements.txt)
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-notebook.txt
+python -m pytest -q                        # 17 pruebas
+python auditoria/fase1_auditoria.py        # auditoría de datos
+python scripts/generar_resultados.py       # tablas, figuras y cifras (~1 min, semilla 42)
+python scripts/construir_notebook.py --ejecutar   # notebook ejecutado de punta a punta
+python scripts/generar_entregables.py      # README (bloque de resultados), informe PDF y presentación
+streamlit run app.py                       # dashboard en http://localhost:8501
 ```
 
-### Notebook
+Todas las rutas son relativas a la raíz del proyecto. El dashboard avisa si `outputs/` no corresponde al código y datos actuales (huella MD5).
 
-```bash
-cd notebooks
-jupyter notebook fragilidad_fiscal_provincial.ipynb
-```
+### Publicar el dashboard (Streamlit Community Cloud)
+Subir la carpeta a un repositorio de GitHub (raíz = esta carpeta; `app.py` y `requirements.txt` en la raíz), incluyendo `outputs/tables/`, `outputs/resultados_clave.json`, `data/raw/` y `src/`
+(el dashboard lee las tablas de validación de `outputs/`). En https://share.streamlit.io elegir el repo, rama `main`, archivo `app.py`, Python 3.12 o 3.13.
 
-También puede abrirse directamente en Google Colab subiendo la carpeta del
-proyecto (o montando Google Drive) y ajustando `PROJECT_ROOT` si la
-estructura de carpetas no se conserva igual.
+## 4. Datos y tratamientos
 
-El notebook se ejecuta de principio a fin sin errores (verificado con
-`nbclient`) y guarda automáticamente sus figuras en `outputs/figures/`, sus
-tablas en `outputs/tables/`, y el panel final con el índice calculado en
-`data/processed/panel_iffs_scores.csv`.
-
-### Dashboard
-
-```bash
-streamlit run app.py
-```
-
-Abre en `http://localhost:8501`. Permite elegir provincia y período, comparar
-provincias, ver el ranking/mapa de calor de fragilidad, descomponer el índice
-por dimensión con una explicación automática en lenguaje claro, y descargar
-la tabla filtrada en CSV.
-
-## 2b. Publicar el dashboard en Streamlit Community Cloud
-
-1. Subir la carpeta del proyecto a un repositorio de GitHub (raíz del repo = esta carpeta;
-   `app.py` y `requirements.txt` deben quedar en la raíz). Incluir `data/raw/base_investigacion/`
-   (pesa ~3 MB); `.venv/` queda afuera por el `.gitignore`.
-2. En https://share.streamlit.io → **Create app** → elegir el repo, rama `main` y
-   *Main file path* = `app.py`.
-3. En *Advanced settings* elegir Python 3.12 o 3.13 y **Deploy**.
-
-El dashboard lee sus datos con rutas relativas al repo, no necesita secretos ni claves de API.
-
-## 3. Origen de los datos
-
-Los paneles de `data/raw/base_investigacion/` fueron procesados y auditados
-en un proyecto de investigación previo (Taller de Indicadores Económicos,
-2026) contra fuentes oficiales:
-
-| Archivo | Fuente | Cobertura |
+| Panel | Fuente | Cobertura |
 |---|---|---|
-| `panel_fiscal_provincial.csv`, `panel_fiscal_benchmarks.csv` | DNAP (ejecución presupuestaria) | 2005-2025, 24 jurisdicciones |
-| `deuda_provincial_panel_1996_2025.csv` | DNAP (stock de deuda) | 1996-2025, 24 jurisdicciones |
-| `servicio_deuda_provincial_panel_2005_2025.csv` | DNAP (servicio de deuda) | 2005-2025, 24 jurisdicciones (CABA corregida: hoja `Millones`) |
-| `deuda_ratios_provincia_anio.csv` | Cálculo propio sobre los anteriores | 2005-2025 |
-| `deuda_moneda_panel.csv` | Bazza, Tedesca & Mahieu (2025) | 11-13 de 24 provincias, 1996-2002 y 2014-2020 |
-| `capacidad_respuesta_panel.csv` | BCRA (depósitos/préstamos) | 2005-2025, 24 jurisdicciones |
-| `eventos_estres_provincial.csv` | DNAP (reestructuración de títulos) — **construido para este proyecto**, no existía como archivo tabular en la investigación original | 13 eventos, 2005-2025 |
+| Ejecución presupuestaria | DNAP | 2005-2025, 24 jurisdicciones |
+| Stock y servicio de deuda | DNAP | 1996/2005-2025 |
+| Composición por moneda | Bazza, Tedesca & Mahieu (2025) | 11-13 de 24, 1996-2002 y 2014-2020 |
+| Capacidad de respuesta | BCRA | 2005-2025 |
+| Eventos de default/reestructuración | DNAP | 13 eventos (12 anclados en 2020 por convención; 1 en 2025) |
 
-Este proyecto **no vuelve a parsear** los Excel crudos de la DNAP/BCRA (ese
-trabajo, con verificación contra el consolidado oficial, <0.4% de diferencia,
-ya está hecho) — reutiliza esos paneles como insumo validado y **reconstruye
-desde cero, con código propio** (`src/indicators.py`), la construcción del
-índice de fragilidad fiscal.
+- **CABA (evidencia):** el servicio de deuda estaba multiplicado por 1.000 por un error de unidades; se lee la hoja `Millones` de la DNAP y el código falla si el cociente con la hoja en miles no es exactamente 1.000.
+- **La Pampa 2005-2017 (decisión de diseño):** el stock puede tener un error de unidades y **no hay confirmación oficial** → se trata como **faltante** en el análisis principal (el original se conserva en `deuda_stock_total_fuente`). La corrección ÷1.000 existe solo como sensibilidad rotulada como supuesto (`la_pampa="sensibilidad_miles"`, y opción en el dashboard).
+- Los paneles de `data/raw/base_investigacion/` son **derivados** de las fuentes oficiales; los Excel originales de la DNAP no están en el repositorio (salvo CABA y La Pampa).
 
-## 4. Metodología del índice (IFFS)
+## 5. Metodología en una página (detalle y evidencia en `docs/METODOLOGIA.md`)
 
-Ver el detalle completo, con fundamento económico de cada variable, en la
-Sección 11 del notebook. En resumen:
-
-- 4 dimensiones núcleo, igual ponderación: Solvencia (Deuda/Ingresos),
-  Liquidez (Servicio/Ingresos), Rigidez del gasto (Personal/Gasto total),
-  Desempeño fiscal (−Resultado financiero/Ingresos).
-- Normalización por percentil ECDF sobre una ventana base **fija** 2005-2012.
-- 3 especificaciones (IFFS-A, B, C) para exponer la sensibilidad metodológica.
-- Sistema de alerta por reglas transparentes (umbrales de percentil, no una
-  calibración estadística contra el outcome real).
-
-## 5. Modelo y eventos raros
-
-La base de eventos tiene 13 observaciones positivas sobre ~504 posibles
-(2.6%), 12 concentradas en el bienio 2020-2021. Por eso **no** se reporta
-accuracy como métrica principal, no se hace split aleatorio ni SMOTE, y los
-resultados se presentan como exploratorios (ver Secciones 12-13 del
-notebook). El hallazgo más sólido es descriptivo: en 2019, las provincias que
-luego reestructuraron ya tenían deuda y servicio de deuda sobre ingresos
-claramente más altos que el resto (AUC descriptiva ≈ 0.97).
-
-## 5b. Capa de IA sin costo (Sección 15b del notebook)
-
-Machine learning clásico (scikit-learn), sin APIs ni claves ni costo, reproducible con semilla fija:
-
-- **Perfiles fiscales (k-means)**, ajustados solo con la ventana 2005-2012 (silhouette ≈ 0.31: estructura moderada).
-- **Anomalías (Isolation Forest)**: descriptivo, no predictivo.
-- **Proyección por tendencia + backtest**: en el backtest a 1 año **no supera** a repetir el último valor (se informa tal cual).
-- **Simulador de escenarios**: caída de ingresos, depreciación y suba del servicio (sensibilidad mecánica, no pronóstico).
-- **Alertas y cambios** interanuales, con aviso cuando casi todas las provincias se mueven juntas.
-- **Análisis exhaustivo automático**: motor de reglas que redacta solo cifras calculadas (no es IA generativa).
-
-## 6. Tabla de control — criterios de evaluación
-
-| Criterio (peso) | Cómo se satisface | Dónde |
+| Decisión | Elección | Por qué (sin mirar eventos) |
 |---|---|---|
-| **Claridad del planteo del problema (20%)** | Problema, objetivo, usuarios y clasificación del producto explícitos, con motivación cuantificada (12/24 provincias reestructuraron en 2020-21) | Notebook Secc. 1-5; Informe p.1; Presentación diap. 1-3 |
-| **Calidad de la implementación en Python (40%)** | Código modular (`src/`), validación de esquema y tipos, manejo de faltantes/división por cero, funciones documentadas, semillas fijas, sin *data leakage*, notebook ejecuta sin errores de punta a punta, dashboard funcional probado | `src/*.py`; notebook (0 errores en ejecución completa); `app.py` (probado con servidor local) |
-| **Uso adecuado de librerías y técnicas del curso (20%)** | pandas/numpy para procesamiento, matplotlib/seaborn/plotly para visualización, scikit-learn (PCA, regresión logística penalizada, validación cruzada agrupada), scipy.stats (Mann-Whitney, tamaño de efecto), Streamlit para el prototipo | `src/indicators.py`, `src/modeling.py`, `app.py` |
-| **Claridad y solidez de la presentación oral (20%)** | 10 diapositivas con notas del orador, cobertura de problema/datos/lógica/resultados/limitaciones, gráficos legibles con fuente y período | `presentacion/presentacion_fragilidad_fiscal.pptx` |
+| Índice único vs. subíndices | 4 subíndices + compuesto de 3 (solvencia, liquidez, estructural) | Dinámicas distintas (ICC y persistencia), redundancia parcial, implicancias de política distintas |
+| Resultado fiscal | Subíndice coyuntural, fuera del compuesto | Regla ex ante: persistencia de rangos < 0,85 |
+| Normalización | Percentil dentro de cada año | La base fija 2005-2012 no es estacionaria; sin información futura; inmune a outliers |
+| Ventanas | 1 año (regla ex ante); 3 y 5 años como sensibilidad | Persistencia de rangos ≥ 0,85 ya a 1 año |
+| Pesos | Iguales; sensibilidad 50/25/25 y 2.000 vectores aleatorios | Sin optimización |
+| Posición | Cuartil del compuesto dentro de cada año | Reemplaza cortes 33/66/85 arbitrarios |
 
-## 7. Limitaciones y pendientes (resumen — detalle completo en el notebook, Sección 17)
+Validación separada en **descripción / discriminación / anticipación**; las pruebas no viables (con su razón cuantificada) están en `outputs/tables/T13_pruebas_no_viables.csv`.
 
-- **La Pampa:** el stock 2005-2017 estaba en miles aunque la fuente declara millones; se corrige (÷1.000) con evidencia sólida pero **sin confirmación oficial de la DNAP**.
-- **Exposición cambiaria por provincia**: sin fuente primaria descargable (solo consolidado nacional).
-- **Composición de deuda por moneda**: cobertura de solo 11-13 de 24 provincias.
-- Sin base pública gratuita de calificaciones crediticias provinciales.
-- Umbrales de alerta: convención expositiva, no calibración estadística.
-- Modelo predictivo: no viable con split temporal estándar dada la escasez y concentración de eventos (ver Sección 5).
-- No se implementó geopandas/mapa geográfico real (no hay shapefiles de provincias disponibles en el entorno) — se usa un mapa de calor (heatmap) como sustituto funcional.
+## 6. Limitaciones
 
-## 8. Autoría y reproducibilidad
+- **La Pampa 2005-2017** sin confirmación oficial (y 2025 sin ejecución): 14 de 504 observaciones sin compuesto.
+- **Score relativo:** no distingue "todas mejoran" de "nadie cambia" (se muestra el nivel común aparte). No es probabilidad de default; no hay umbrales de alerta calibrados.
+- **13 eventos**, 12 en el mismo shock, 11 con año ancla convencional: no hay validación predictiva; la discriminación está confundida con el acceso al mercado (% de bonos en la deuda).
+- **Stock/flujo:** Deuda a 31/12 sobre ingresos del año sobrestima la razón con inflación alta.
+- **Faltan** deuda flotante, garantías, vencimientos futuros y moneda de la deuda (solo 11 de 24 provincias).
+- **Saltos de servicio resueltos** con la identidad stock-flujo (`auditoria/fase2_servicio_y_unidades.py`): Santa Cruz 2024-25 y San Luis son amortizaciones reales; solo La Pampa 2024 (stock = 500) no es verificable y no cambia ningún puesto.
+- Una alta proporción de gasto en personal puede reflejar provisión de servicios y no rigidez.
 
-Todas las rutas del código son relativas a la raíz del proyecto (`Path(__file__).resolve().parent`).
-Semilla aleatoria fija (`RANDOM_SEED = 42`) en todos los pasos con componente
-aleatorio (PCA, split de validación cruzada, regresión logística).
+## 7. Autoría y reproducibilidad
+Semilla fija (42) en todos los procesos aleatorios; rutas relativas; `pytest` verifica datos, construcción del índice, reglas de diseño y consistencia entre `outputs/` y el código.
