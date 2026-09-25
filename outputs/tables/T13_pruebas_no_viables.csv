@@ -1,0 +1,9 @@
+prueba,por_que_no_es_viable
+"Modelo supervisado con corte temporal (entrenar antes de 2020, evaluar después)","0 eventos antes de 2020: no hay ninguna observación positiva para entrenar. Eventos por año: {2020: 12, 2025: 1}."
+"Probabilidad de default calibrada (logit/probit, curva de calibración)","13 eventos sobre 504 observaciones provincia-año (2.6%), 12 de ellos en un mismo shock: sin variación temporal independiente no se identifica una probabilidad; un score relativo (media 50 por construcción) no es una probabilidad."
+Optimización de pesos o umbrales para maximizar el AUC / la tasa de acierto,Con 13 eventos (12 simultáneos) cualquier optimización sobreajusta y el resultado no generaliza; además contradice la regla de diseño ex ante. No se hace.
+Modelo de duración / riesgo proporcional (Cox),Los 12 eventos del bloque COVID comparten fecha (o un año de diferencia): no hay escalonamiento temporal que identifique el efecto de las covariables.
+"Estudio de eventos con efectos de tratamiento escalonados (Callaway-Sant'Anna, Sun-Abraham)","Requiere cohortes de adopción en años distintos; aquí hay una única cohorte de 12 unidades. Se reporta solo la comparación de trayectorias promedio, con IC bootstrap, como exploración."
+Estimación del año exacto de cada evento (timing),"De los 12 eventos del bloque 2020-21, solo 1 tienen fecha documentada; en los otros 11 el año 2020 es una convención. Se reportan ambos anclajes (2020 y 2021)."
+Validación fuera de muestra con el evento de La Rioja 2025,"Es UNA observación: sirve para mostrar la trayectoria (descriptivo), no para estimar aciertos ni errores."
+Comparación con calificaciones crediticias,No hay una base pública gratuita y consistente de calificaciones provinciales en los datos disponibles.

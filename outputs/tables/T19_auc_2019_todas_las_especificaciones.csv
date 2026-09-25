@@ -1,0 +1,19 @@
+especificacion,auc_2019,n_evento,n_control
+PRINCIPAL,0.9305555555555556,12,12
+Normalización: base fija 2005-2012 (legado),0.9375,12,12
+Normalización: base fija 2005-2019,0.9444444444444444,12,12
+Normalización: ventana móvil 8 años (sin mirar adelante),0.9513888888888888,12,12
+Normalización: ventana móvil 5 años,0.9444444444444444,12,12
+Normalización: pooled todos los años,0.9444444444444444,12,12
+Normalización: z-score base 2005-2012,0.9236111111111112,12,12
+"Normalización: z-score robusto (mediana/MAD, recorte ±3)",0.9236111111111112,12,12
+Suavizado liquidez: media móvil 3 años,0.9375,12,12
+Suavizado liquidez: 5 años,0.9375,12,12
+Agregación: media geométrica,0.9166666666666666,12,12
+Agregación: media cuadrática (penaliza extremos),0.9236111111111112,12,12
+Agregación: máximo de dimensiones (eslabón débil),0.8194444444444444,12,12
+Compuesto con las 4 dimensiones (incluye coyuntural),0.8958333333333334,12,12
+Compuesto sin rigidez (solvencia + liquidez),0.9513888888888888,12,12
+Pesos 50% solvencia / 25% / 25%,0.9513888888888888,12,12
+Pesos 50% liquidez / 25% / 25%,0.9236111111111112,12,12
+Pesos 50% estructural / 25% / 25%,0.8888888888888888,12,12
