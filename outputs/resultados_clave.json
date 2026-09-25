@@ -1,0 +1,1677 @@
+{
+ "huella": "deabd9a28e1abd8ea5f49a7c971c24c2",
+ "semilla": 42,
+ "n_boot": 2000,
+ "n_perm": 10000,
+ "cobertura": {
+  "n_total": 504,
+  "n_compuesto": 490,
+  "pct_compuesto": 97.2,
+  "por_variable_pct": {
+   "solvencia": 97.2,
+   "liquidez": 99.8,
+   "estructural": 99.8,
+   "coyuntural": 99.8
+  },
+  "faltantes_compuesto": {
+   "La Pampa": "2005-2017 y 2025 (14 años)"
+  },
+  "n_provincias": 24,
+  "anios": [
+   2005,
+   2025
+  ]
+ },
+ "avisos_datos": [
+  "La Pampa 2005-2017 (13 obs.): stock de deuda con posible error de unidades y SIN confirmación oficial -> tratado como faltante en el análisis principal (no se corrige ni se borra el original: ver `deuda_stock_total_fuente`).",
+  "Sin ejecución presupuestaria 2025 (La Pampa): dato no reportado, queda como faltante."
+ ],
+ "nivel_comun": {
+  "Deuda/Ingresos": {
+   "2005": 1.137,
+   "2006": 0.913,
+   "2007": 0.663,
+   "2008": 0.55,
+   "2009": 0.543,
+   "2010": 0.335,
+   "2011": 0.286,
+   "2012": 0.307,
+   "2013": 0.285,
+   "2014": 0.222,
+   "2015": 0.215,
+   "2016": 0.231,
+   "2017": 0.356,
+   "2018": 0.352,
+   "2019": 0.377,
+   "2020": 0.371,
+   "2021": 0.27,
+   "2022": 0.206,
+   "2023": 0.321,
+   "2024": 0.154,
+   "2025": 0.158
+  },
+  "Servicio/Ingresos": {
+   "2005": 0.106,
+   "2006": 0.123,
+   "2007": 0.081,
+   "2008": 0.063,
+   "2009": 0.067,
+   "2010": 0.05,
+   "2011": 0.018,
+   "2012": 0.017,
+   "2013": 0.02,
+   "2014": 0.019,
+   "2015": 0.016,
+   "2016": 0.017,
+   "2017": 0.034,
+   "2018": 0.06,
+   "2019": 0.057,
+   "2020": 0.034,
+   "2021": 0.046,
+   "2022": 0.04,
+   "2023": 0.034,
+   "2024": 0.032,
+   "2025": 0.024
+  },
+  "Personal/Gasto": {
+   "2005": 0.406,
+   "2006": 0.408,
+   "2007": 0.412,
+   "2008": 0.449,
+   "2009": 0.456,
+   "2010": 0.454,
+   "2011": 0.459,
+   "2012": 0.488,
+   "2013": 0.465,
+   "2014": 0.467,
+   "2015": 0.476,
+   "2016": 0.481,
+   "2017": 0.464,
+   "2018": 0.446,
+   "2019": 0.436,
+   "2020": 0.458,
+   "2021": 0.436,
+   "2022": 0.431,
+   "2023": 0.434,
+   "2024": 0.456,
+   "2025": 0.471
+  },
+  "-Resultado/Ingresos": {
+   "2005": -0.023,
+   "2006": -0.025,
+   "2007": -0.002,
+   "2008": 0.012,
+   "2009": 0.032,
+   "2010": -0.048,
+   "2011": 0.029,
+   "2012": 0.02,
+   "2013": 0.019,
+   "2014": -0.006,
+   "2015": 0.054,
+   "2016": 0.066,
+   "2017": 0.047,
+   "2018": 0.002,
+   "2019": 0.041,
+   "2020": 0.0,
+   "2021": -0.023,
+   "2022": -0.018,
+   "2023": 0.011,
+   "2024": -0.023,
+   "2025": 0.015
+  }
+ },
+ "diseno": {
+  "props": {
+   "solvencia": {
+    "icc": 0.301,
+    "ar1": 0.905,
+    "persistencia_rangos": 0.96
+   },
+   "liquidez": {
+    "icc": 0.282,
+    "ar1": 0.813,
+    "persistencia_rangos": 0.892
+   },
+   "estructural": {
+    "icc": 0.636,
+    "ar1": 0.789,
+    "persistencia_rangos": 0.929
+   },
+   "coyuntural": {
+    "icc": 0.219,
+    "ar1": 0.355,
+    "persistencia_rangos": 0.483
+   },
+   "contexto": {
+    "icc": 0.968,
+    "ar1": 0.649,
+    "persistencia_rangos": 0.982
+   }
+  },
+  "regla_umbral_persistencia": 0.85,
+  "entra_al_compuesto": {
+   "solvencia": true,
+   "liquidez": true,
+   "estructural": true,
+   "coyuntural": false
+  },
+  "ventana_elegida": {
+   "solvencia": 1,
+   "liquidez": 1,
+   "estructural": 1,
+   "coyuntural": 5
+  },
+  "redundancia": {
+   "Solvencia – Liquidez": {
+    "pooled": 0.788,
+    "entre": 0.895,
+    "intra": 0.707
+   },
+   "Solvencia – Estructural": {
+    "pooled": 0.18,
+    "entre": 0.383,
+    "intra": -0.243
+   },
+   "Solvencia – Coyuntural": {
+    "pooled": 0.083,
+    "entre": 0.359,
+    "intra": -0.08
+   },
+   "Liquidez – Estructural": {
+    "pooled": 0.219,
+    "entre": 0.586,
+    "intra": -0.236
+   },
+   "Liquidez – Coyuntural": {
+    "pooled": 0.063,
+    "entre": 0.454,
+    "intra": -0.117
+   },
+   "Estructural – Coyuntural": {
+    "pooled": 0.282,
+    "entre": 0.372,
+    "intra": 0.214
+   }
+  },
+  "pca_varianza": [
+   0.539,
+   0.229,
+   0.177,
+   0.055
+  ]
+ },
+ "robustez_diseno": {
+  "PRINCIPAL: corte anual · media simple de solvencia, liquidez y estructural": {
+   "spearman": 1.0,
+   "deriva_mediana": 8.3,
+   "persistencia": 0.944,
+   "cambio_rango_medio": 0.0,
+   "n_ge5": 0,
+   "top6_2024": 6
+  },
+  "Normalización: base fija 2005-2012 (legado)": {
+   "spearman": 0.918,
+   "deriva_mediana": 28.8,
+   "persistencia": 0.947,
+   "cambio_rango_medio": 0.93,
+   "n_ge5": 5,
+   "top6_2024": 6
+  },
+  "Normalización: base fija 2005-2019": {
+   "spearman": 0.923,
+   "deriva_mediana": 26.0,
+   "persistencia": 0.95,
+   "cambio_rango_medio": 0.85,
+   "n_ge5": 2,
+   "top6_2024": 5
+  },
+  "Normalización: ventana móvil 8 años (sin mirar adelante)": {
+   "spearman": 0.934,
+   "deriva_mediana": 26.0,
+   "persistencia": 0.953,
+   "cambio_rango_medio": 1.02,
+   "n_ge5": 6,
+   "top6_2024": 6
+  },
+  "Normalización: ventana móvil 5 años": {
+   "spearman": 0.942,
+   "deriva_mediana": 29.3,
+   "persistencia": 0.952,
+   "cambio_rango_medio": 1.0,
+   "n_ge5": 6,
+   "top6_2024": 6
+  },
+  "Normalización: pooled todos los años": {
+   "spearman": 0.924,
+   "deriva_mediana": 25.0,
+   "persistencia": 0.948,
+   "cambio_rango_medio": 0.85,
+   "n_ge5": 2,
+   "top6_2024": 6
+  },
+  "Normalización: z-score base 2005-2012": {
+   "spearman": 0.906,
+   "deriva_mediana": 31.3,
+   "persistencia": 0.936,
+   "cambio_rango_medio": 1.3,
+   "n_ge5": 17,
+   "top6_2024": 5
+  },
+  "Normalización: z-score robusto (mediana/MAD, recorte ±3)": {
+   "spearman": 0.913,
+   "deriva_mediana": 28.6,
+   "persistencia": 0.94,
+   "cambio_rango_medio": 1.27,
+   "n_ge5": 16,
+   "top6_2024": 5
+  },
+  "Suavizado liquidez: media móvil 3 años": {
+   "spearman": 0.987,
+   "deriva_mediana": 10.1,
+   "persistencia": 0.962,
+   "cambio_rango_medio": 0.8,
+   "n_ge5": 9,
+   "top6_2024": 5
+  },
+  "Suavizado liquidez: 5 años": {
+   "spearman": 0.977,
+   "deriva_mediana": 9.9,
+   "persistencia": 0.966,
+   "cambio_rango_medio": 1.1,
+   "n_ge5": 18,
+   "top6_2024": 5
+  },
+  "Agregación: media geométrica": {
+   "spearman": 0.987,
+   "deriva_mediana": 11.0,
+   "persistencia": 0.948,
+   "cambio_rango_medio": 0.73,
+   "n_ge5": 3,
+   "top6_2024": 5
+  },
+  "Agregación: media cuadrática (penaliza extremos)": {
+   "spearman": 0.992,
+   "deriva_mediana": 8.0,
+   "persistencia": 0.942,
+   "cambio_rango_medio": 0.77,
+   "n_ge5": 4,
+   "top6_2024": 5
+  },
+  "Agregación: máximo de dimensiones (eslabón débil)": {
+   "spearman": 0.88,
+   "deriva_mediana": 13.8,
+   "persistencia": 0.895,
+   "cambio_rango_medio": 2.46,
+   "n_ge5": 71,
+   "top6_2024": 4
+  },
+  "Compuesto con las 4 dimensiones (incluye coyuntural)": {
+   "spearman": 0.942,
+   "deriva_mediana": 8.1,
+   "persistencia": 0.894,
+   "cambio_rango_medio": 1.94,
+   "n_ge5": 35,
+   "top6_2024": 4
+  },
+  "Compuesto sin rigidez (solvencia + liquidez)": {
+   "spearman": 0.928,
+   "deriva_mediana": 11.1,
+   "persistencia": 0.944,
+   "cambio_rango_medio": 2.09,
+   "n_ge5": 49,
+   "top6_2024": 5
+  },
+  "Pesos 50% solvencia / 25% / 25%": {
+   "spearman": 0.987,
+   "deriva_mediana": 10.2,
+   "persistencia": 0.954,
+   "cambio_rango_medio": 0.96,
+   "n_ge5": 3,
+   "top6_2024": 5
+  },
+  "Pesos 50% liquidez / 25% / 25%": {
+   "spearman": 0.989,
+   "deriva_mediana": 7.5,
+   "persistencia": 0.935,
+   "cambio_rango_medio": 0.84,
+   "n_ge5": 2,
+   "top6_2024": 5
+  },
+  "Pesos 50% estructural / 25% / 25%": {
+   "spearman": 0.971,
+   "deriva_mediana": 8.9,
+   "persistencia": 0.944,
+   "cambio_rango_medio": 1.42,
+   "n_ge5": 14,
+   "top6_2024": 5
+  }
+ },
+ "pesos_aleatorios": {
+  "n_sim": 2000,
+  "spearman_medio_p05": 0.799,
+  "spearman_medio_mediana": 0.943,
+  "spearman_medio_min": 0.696,
+  "cuartil_superior_estable_ge80": 0.651,
+  "cuartil_superior_estable_mediana": 0.896,
+  "n_obs_cuartil_superior": 126
+ },
+ "eventos": {
+  "n_eventos": 13,
+  "n_covid": 12,
+  "provincias_evento_covid": [
+   "Buenos Aires",
+   "Chaco",
+   "Chubut",
+   "Córdoba",
+   "Entre Ríos",
+   "Jujuy",
+   "La Rioja",
+   "Mendoza",
+   "Neuquén",
+   "Río Negro",
+   "Salta",
+   "Tierra del Fuego"
+  ],
+  "n_provincias_evento_covid": 12,
+  "n_anio_ambiguo": 11,
+  "eventos_por_anio": {
+   "2020": 12,
+   "2025": 1
+  },
+  "tasa_base_pct": 2.6
+ },
+ "discriminacion_2019": {
+  "IFFS compuesto (principal)": {
+   "auc": 0.931,
+   "ic95": [
+    0.805,
+    1.0
+   ],
+   "p_perm": 0.0002,
+   "n_evento": 12,
+   "n_control": 12
+  },
+  "Subíndice solvencia": {
+   "auc": 0.972,
+   "ic95": [
+    0.889,
+    1.0
+   ],
+   "p_perm": 0.0001,
+   "n_evento": 12,
+   "n_control": 12
+  },
+  "Subíndice liquidez": {
+   "auc": 0.91,
+   "ic95": [
+    0.743,
+    1.0
+   ],
+   "p_perm": 0.0002,
+   "n_evento": 12,
+   "n_control": 12
+  },
+  "Subíndice estructural": {
+   "auc": 0.722,
+   "ic95": [
+    0.472,
+    0.931
+   ],
+   "p_perm": 0.0327,
+   "n_evento": 12,
+   "n_control": 12
+  },
+  "Subíndice coyuntural": {
+   "auc": 0.681,
+   "ic95": [
+    0.444,
+    0.889
+   ],
+   "p_perm": 0.075,
+   "n_evento": 12,
+   "n_control": 12
+  },
+  "IFFS legado B (base fija 2005-12, 4 dims)": {
+   "auc": 0.931,
+   "ic95": [
+    0.799,
+    1.0
+   ],
+   "p_perm": 0.0002,
+   "n_evento": 12,
+   "n_control": 12
+  },
+  "Benchmark: participación de bonos en la deuda (%)": {
+   "auc": 0.868,
+   "ic95": [
+    0.681,
+    1.0
+   ],
+   "p_perm": 0.0009,
+   "n_evento": 12,
+   "n_control": 12
+  },
+  "Benchmark: dependencia de transferencias": {
+   "auc": 0.396,
+   "ic95": [
+    0.16,
+    0.653
+   ],
+   "p_perm": 0.8081,
+   "n_evento": 12,
+   "n_control": 12
+  }
+ },
+ "azar_auc_2019": {
+  "auc_observado": 0.931,
+  "azar_p50": 0.5,
+  "azar_p95": 0.701,
+  "azar_p99": 0.781,
+  "n_sorteos": 5000.0
+ },
+ "condicionado_a_bonos_2019": {
+  "anio_ref": 2019,
+  "min_bonos_pct": 25.0,
+  "n_emisoras": 14,
+  "n_evento": 11,
+  "n_control": 3,
+  "controles": [
+   "CABA",
+   "Misiones",
+   "Santa Fe"
+  ],
+  "auc_IFFS": 0.879,
+  "auc_solvencia": 0.879,
+  "auc_liquidez": 0.727,
+  "auc_estructural": 0.848,
+  "auc_coyuntural": 0.485
+ },
+ "rezagos": {
+  "2020 (convención)|IFFS|T-1": {
+   "auc": 0.931,
+   "ic95": [
+    0.805,
+    1.0
+   ],
+   "anio_ref": 2019
+  },
+  "2020 (convención)|IFFS|T-2": {
+   "auc": 0.944,
+   "ic95": [
+    0.826,
+    1.0
+   ],
+   "anio_ref": 2018
+  },
+  "2020 (convención)|IFFS|T-3": {
+   "auc": 0.917,
+   "ic95": [
+    0.773,
+    1.0
+   ],
+   "anio_ref": 2017
+  },
+  "2020 (convención)|IFFS|T-4": {
+   "auc": 0.894,
+   "ic95": [
+    0.727,
+    1.0
+   ],
+   "anio_ref": 2016
+  },
+  "2020 (convención)|IFFS|T-5": {
+   "auc": 0.879,
+   "ic95": [
+    0.705,
+    0.985
+   ],
+   "anio_ref": 2015
+  },
+  "2020 (convención)|solvencia|T-1": {
+   "auc": 0.972,
+   "ic95": [
+    0.889,
+    1.0
+   ],
+   "anio_ref": 2019
+  },
+  "2020 (convención)|solvencia|T-2": {
+   "auc": 0.979,
+   "ic95": [
+    0.917,
+    1.0
+   ],
+   "anio_ref": 2018
+  },
+  "2020 (convención)|solvencia|T-3": {
+   "auc": 0.939,
+   "ic95": [
+    0.811,
+    1.0
+   ],
+   "anio_ref": 2017
+  },
+  "2020 (convención)|solvencia|T-4": {
+   "auc": 0.864,
+   "ic95": [
+    0.682,
+    0.977
+   ],
+   "anio_ref": 2016
+  },
+  "2020 (convención)|solvencia|T-5": {
+   "auc": 0.795,
+   "ic95": [
+    0.591,
+    0.947
+   ],
+   "anio_ref": 2015
+  },
+  "2020 (convención)|liquidez|T-1": {
+   "auc": 0.91,
+   "ic95": [
+    0.743,
+    1.0
+   ],
+   "anio_ref": 2019
+  },
+  "2020 (convención)|liquidez|T-2": {
+   "auc": 0.924,
+   "ic95": [
+    0.778,
+    1.0
+   ],
+   "anio_ref": 2018
+  },
+  "2020 (convención)|liquidez|T-3": {
+   "auc": 0.931,
+   "ic95": [
+    0.792,
+    1.0
+   ],
+   "anio_ref": 2017
+  },
+  "2020 (convención)|liquidez|T-4": {
+   "auc": 0.868,
+   "ic95": [
+    0.673,
+    1.0
+   ],
+   "anio_ref": 2016
+  },
+  "2020 (convención)|liquidez|T-5": {
+   "auc": 0.84,
+   "ic95": [
+    0.639,
+    0.993
+   ],
+   "anio_ref": 2015
+  },
+  "2020 (convención)|estructural|T-1": {
+   "auc": 0.722,
+   "ic95": [
+    0.472,
+    0.931
+   ],
+   "anio_ref": 2019
+  },
+  "2020 (convención)|estructural|T-2": {
+   "auc": 0.75,
+   "ic95": [
+    0.514,
+    0.951
+   ],
+   "anio_ref": 2018
+  },
+  "2020 (convención)|estructural|T-3": {
+   "auc": 0.764,
+   "ic95": [
+    0.535,
+    0.958
+   ],
+   "anio_ref": 2017
+  },
+  "2020 (convención)|estructural|T-4": {
+   "auc": 0.785,
+   "ic95": [
+    0.569,
+    0.951
+   ],
+   "anio_ref": 2016
+  },
+  "2020 (convención)|estructural|T-5": {
+   "auc": 0.792,
+   "ic95": [
+    0.576,
+    0.958
+   ],
+   "anio_ref": 2015
+  },
+  "2020 (convención)|coyuntural|T-1": {
+   "auc": 0.681,
+   "ic95": [
+    0.444,
+    0.889
+   ],
+   "anio_ref": 2019
+  },
+  "2020 (convención)|coyuntural|T-2": {
+   "auc": 0.729,
+   "ic95": [
+    0.5,
+    0.924
+   ],
+   "anio_ref": 2018
+  },
+  "2020 (convención)|coyuntural|T-3": {
+   "auc": 0.819,
+   "ic95": [
+    0.632,
+    0.958
+   ],
+   "anio_ref": 2017
+  },
+  "2020 (convención)|coyuntural|T-4": {
+   "auc": 0.729,
+   "ic95": [
+    0.486,
+    0.924
+   ],
+   "anio_ref": 2016
+  },
+  "2020 (convención)|coyuntural|T-5": {
+   "auc": 0.667,
+   "ic95": [
+    0.444,
+    0.889
+   ],
+   "anio_ref": 2015
+  },
+  "2020 (convención)|bonos_pct|T-1": {
+   "auc": 0.868,
+   "ic95": [
+    0.681,
+    1.0
+   ],
+   "anio_ref": 2019
+  },
+  "2020 (convención)|bonos_pct|T-2": {
+   "auc": 0.861,
+   "ic95": [
+    0.667,
+    1.0
+   ],
+   "anio_ref": 2018
+  },
+  "2020 (convención)|bonos_pct|T-3": {
+   "auc": 0.847,
+   "ic95": [
+    0.646,
+    1.0
+   ],
+   "anio_ref": 2017
+  },
+  "2020 (convención)|bonos_pct|T-4": {
+   "auc": 0.708,
+   "ic95": [
+    0.465,
+    0.903
+   ],
+   "anio_ref": 2016
+  },
+  "2020 (convención)|bonos_pct|T-5": {
+   "auc": 0.736,
+   "ic95": [
+    0.514,
+    0.917
+   ],
+   "anio_ref": 2015
+  },
+  "2020 (convención)|IFFS_v1|T-1": {
+   "auc": 0.931,
+   "ic95": [
+    0.799,
+    1.0
+   ],
+   "anio_ref": 2019
+  },
+  "2020 (convención)|IFFS_v1|T-2": {
+   "auc": 0.965,
+   "ic95": [
+    0.889,
+    1.0
+   ],
+   "anio_ref": 2018
+  },
+  "2020 (convención)|IFFS_v1|T-3": {
+   "auc": 0.931,
+   "ic95": [
+    0.792,
+    1.0
+   ],
+   "anio_ref": 2017
+  },
+  "2020 (convención)|IFFS_v1|T-4": {
+   "auc": 0.847,
+   "ic95": [
+    0.646,
+    0.986
+   ],
+   "anio_ref": 2016
+  },
+  "2020 (convención)|IFFS_v1|T-5": {
+   "auc": 0.861,
+   "ic95": [
+    0.674,
+    0.986
+   ],
+   "anio_ref": 2015
+  },
+  "2021 para los 11 de fecha ambigua|IFFS|T-1": {
+   "auc": 0.931,
+   "ic95": [
+    0.799,
+    1.0
+   ],
+   "anio_ref": 2020
+  },
+  "2021 para los 11 de fecha ambigua|IFFS|T-2": {
+   "auc": 0.931,
+   "ic95": [
+    0.805,
+    1.0
+   ],
+   "anio_ref": 2019
+  },
+  "2021 para los 11 de fecha ambigua|IFFS|T-3": {
+   "auc": 0.938,
+   "ic95": [
+    0.812,
+    1.0
+   ],
+   "anio_ref": 2018
+  },
+  "2021 para los 11 de fecha ambigua|IFFS|T-4": {
+   "auc": 0.902,
+   "ic95": [
+    0.735,
+    0.992
+   ],
+   "anio_ref": 2017
+  },
+  "2021 para los 11 de fecha ambigua|IFFS|T-5": {
+   "auc": 0.894,
+   "ic95": [
+    0.727,
+    1.0
+   ],
+   "anio_ref": 2016
+  },
+  "2021 para los 11 de fecha ambigua|solvencia|T-1": {
+   "auc": 0.972,
+   "ic95": [
+    0.889,
+    1.0
+   ],
+   "anio_ref": 2020
+  },
+  "2021 para los 11 de fecha ambigua|solvencia|T-2": {
+   "auc": 0.972,
+   "ic95": [
+    0.889,
+    1.0
+   ],
+   "anio_ref": 2019
+  },
+  "2021 para los 11 de fecha ambigua|solvencia|T-3": {
+   "auc": 0.979,
+   "ic95": [
+    0.917,
+    1.0
+   ],
+   "anio_ref": 2018
+  },
+  "2021 para los 11 de fecha ambigua|solvencia|T-4": {
+   "auc": 0.898,
+   "ic95": [
+    0.746,
+    1.0
+   ],
+   "anio_ref": 2017
+  },
+  "2021 para los 11 de fecha ambigua|solvencia|T-5": {
+   "auc": 0.864,
+   "ic95": [
+    0.682,
+    0.977
+   ],
+   "anio_ref": 2016
+  },
+  "2021 para los 11 de fecha ambigua|liquidez|T-1": {
+   "auc": 0.924,
+   "ic95": [
+    0.75,
+    1.0
+   ],
+   "anio_ref": 2020
+  },
+  "2021 para los 11 de fecha ambigua|liquidez|T-2": {
+   "auc": 0.903,
+   "ic95": [
+    0.722,
+    1.0
+   ],
+   "anio_ref": 2019
+  },
+  "2021 para los 11 de fecha ambigua|liquidez|T-3": {
+   "auc": 0.924,
+   "ic95": [
+    0.778,
+    1.0
+   ],
+   "anio_ref": 2018
+  },
+  "2021 para los 11 de fecha ambigua|liquidez|T-4": {
+   "auc": 0.924,
+   "ic95": [
+    0.778,
+    1.0
+   ],
+   "anio_ref": 2017
+  },
+  "2021 para los 11 de fecha ambigua|liquidez|T-5": {
+   "auc": 0.875,
+   "ic95": [
+    0.681,
+    1.0
+   ],
+   "anio_ref": 2016
+  },
+  "2021 para los 11 de fecha ambigua|estructural|T-1": {
+   "auc": 0.771,
+   "ic95": [
+    0.549,
+    0.938
+   ],
+   "anio_ref": 2020
+  },
+  "2021 para los 11 de fecha ambigua|estructural|T-2": {
+   "auc": 0.722,
+   "ic95": [
+    0.472,
+    0.931
+   ],
+   "anio_ref": 2019
+  },
+  "2021 para los 11 de fecha ambigua|estructural|T-3": {
+   "auc": 0.733,
+   "ic95": [
+    0.496,
+    0.931
+   ],
+   "anio_ref": 2018
+  },
+  "2021 para los 11 de fecha ambigua|estructural|T-4": {
+   "auc": 0.778,
+   "ic95": [
+    0.556,
+    0.965
+   ],
+   "anio_ref": 2017
+  },
+  "2021 para los 11 de fecha ambigua|estructural|T-5": {
+   "auc": 0.767,
+   "ic95": [
+    0.556,
+    0.938
+   ],
+   "anio_ref": 2016
+  },
+  "2021 para los 11 de fecha ambigua|coyuntural|T-1": {
+   "auc": 0.549,
+   "ic95": [
+    0.306,
+    0.785
+   ],
+   "anio_ref": 2020
+  },
+  "2021 para los 11 de fecha ambigua|coyuntural|T-2": {
+   "auc": 0.698,
+   "ic95": [
+    0.462,
+    0.892
+   ],
+   "anio_ref": 2019
+  },
+  "2021 para los 11 de fecha ambigua|coyuntural|T-3": {
+   "auc": 0.715,
+   "ic95": [
+    0.479,
+    0.917
+   ],
+   "anio_ref": 2018
+  },
+  "2021 para los 11 de fecha ambigua|coyuntural|T-4": {
+   "auc": 0.781,
+   "ic95": [
+    0.556,
+    0.938
+   ],
+   "anio_ref": 2017
+  },
+  "2021 para los 11 de fecha ambigua|coyuntural|T-5": {
+   "auc": 0.726,
+   "ic95": [
+    0.486,
+    0.917
+   ],
+   "anio_ref": 2016
+  },
+  "2021 para los 11 de fecha ambigua|bonos_pct|T-1": {
+   "auc": 0.91,
+   "ic95": [
+    0.764,
+    1.0
+   ],
+   "anio_ref": 2020
+  },
+  "2021 para los 11 de fecha ambigua|bonos_pct|T-2": {
+   "auc": 0.868,
+   "ic95": [
+    0.681,
+    1.0
+   ],
+   "anio_ref": 2019
+  },
+  "2021 para los 11 de fecha ambigua|bonos_pct|T-3": {
+   "auc": 0.861,
+   "ic95": [
+    0.667,
+    1.0
+   ],
+   "anio_ref": 2018
+  },
+  "2021 para los 11 de fecha ambigua|bonos_pct|T-4": {
+   "auc": 0.826,
+   "ic95": [
+    0.611,
+    0.986
+   ],
+   "anio_ref": 2017
+  },
+  "2021 para los 11 de fecha ambigua|bonos_pct|T-5": {
+   "auc": 0.715,
+   "ic95": [
+    0.479,
+    0.91
+   ],
+   "anio_ref": 2016
+  },
+  "2021 para los 11 de fecha ambigua|IFFS_v1|T-1": {
+   "auc": 0.896,
+   "ic95": [
+    0.736,
+    1.0
+   ],
+   "anio_ref": 2020
+  },
+  "2021 para los 11 de fecha ambigua|IFFS_v1|T-2": {
+   "auc": 0.931,
+   "ic95": [
+    0.799,
+    1.0
+   ],
+   "anio_ref": 2019
+  },
+  "2021 para los 11 de fecha ambigua|IFFS_v1|T-3": {
+   "auc": 0.965,
+   "ic95": [
+    0.889,
+    1.0
+   ],
+   "anio_ref": 2018
+  },
+  "2021 para los 11 de fecha ambigua|IFFS_v1|T-4": {
+   "auc": 0.924,
+   "ic95": [
+    0.785,
+    1.0
+   ],
+   "anio_ref": 2017
+  },
+  "2021 para los 11 de fecha ambigua|IFFS_v1|T-5": {
+   "auc": 0.847,
+   "ic95": [
+    0.646,
+    0.986
+   ],
+   "anio_ref": 2016
+  }
+ },
+ "placebo_temporal": {
+  "auc_iffs_por_anio": {
+   "2005": 0.583,
+   "2006": 0.568,
+   "2007": 0.636,
+   "2008": 0.72,
+   "2009": 0.667,
+   "2010": 0.758,
+   "2011": 0.826,
+   "2012": 0.871,
+   "2013": 0.917,
+   "2014": 0.856,
+   "2015": 0.879,
+   "2016": 0.894,
+   "2017": 0.917,
+   "2018": 0.944,
+   "2019": 0.931,
+   "2020": 0.927,
+   "2021": 0.906,
+   "2022": 0.92,
+   "2023": 0.955,
+   "2024": 0.976,
+   "2025": 0.981
+  },
+  "ic95_iffs": {
+   "2005": [
+    0.326,
+    0.795
+   ],
+   "2006": [
+    0.303,
+    0.78
+   ],
+   "2007": [
+    0.356,
+    0.864
+   ],
+   "2008": [
+    0.462,
+    0.909
+   ],
+   "2009": [
+    0.39,
+    0.879
+   ],
+   "2010": [
+    0.508,
+    0.936
+   ],
+   "2011": [
+    0.602,
+    0.97
+   ],
+   "2012": [
+    0.678,
+    0.993
+   ],
+   "2013": [
+    0.765,
+    1.0
+   ],
+   "2014": [
+    0.663,
+    0.97
+   ],
+   "2015": [
+    0.697,
+    0.985
+   ],
+   "2016": [
+    0.723,
+    1.0
+   ],
+   "2017": [
+    0.758,
+    1.0
+   ],
+   "2018": [
+    0.828,
+    1.0
+   ],
+   "2019": [
+    0.806,
+    1.0
+   ],
+   "2020": [
+    0.792,
+    1.0
+   ],
+   "2021": [
+    0.752,
+    1.0
+   ],
+   "2022": [
+    0.776,
+    1.0
+   ],
+   "2023": [
+    0.854,
+    1.0
+   ],
+   "2024": [
+    0.913,
+    1.0
+   ],
+   "2025": [
+    0.917,
+    1.0
+   ]
+  },
+  "auc_bonos_por_anio": {
+   "2005": 0.403,
+   "2006": 0.424,
+   "2007": 0.424,
+   "2008": 0.549,
+   "2009": 0.562,
+   "2010": 0.635,
+   "2011": 0.611,
+   "2012": 0.688,
+   "2013": 0.736,
+   "2014": 0.708,
+   "2015": 0.736,
+   "2016": 0.708,
+   "2017": 0.847,
+   "2018": 0.861,
+   "2019": 0.868,
+   "2020": 0.91,
+   "2021": 0.91,
+   "2022": 0.924,
+   "2023": 0.896,
+   "2024": 0.84,
+   "2025": 0.742
+  },
+  "primer_anio_ic_sobre_azar": 2010,
+  "primer_anio_auc_ge_085": 2012
+ },
+ "pretendencia": {
+  "principal|IFFS|T-5->T-1": {
+   "dif": 5.16,
+   "ic95": [
+    -2.57,
+    13.52
+   ],
+   "p": 0.276,
+   "cambio_evento": 3.16,
+   "cambio_control": -2.0
+  },
+  "principal|IFFS|T-3->T-1": {
+   "dif": -1.57,
+   "ic95": [
+    -7.59,
+    4.66
+   ],
+   "p": 0.644,
+   "cambio_evento": -0.18,
+   "cambio_control": 1.39
+  },
+  "principal|S_solvencia|T-5->T-1": {
+   "dif": 15.85,
+   "ic95": [
+    0.38,
+    33.33
+   ],
+   "p": 0.082,
+   "cambio_evento": 9.48,
+   "cambio_control": -6.37
+  },
+  "principal|S_solvencia|T-3->T-1": {
+   "dif": 1.45,
+   "ic95": [
+    -8.08,
+    12.31
+   ],
+   "p": 0.792,
+   "cambio_evento": 2.6,
+   "cambio_control": 1.14
+  },
+  "principal|S_liquidez|T-5->T-1": {
+   "dif": 6.94,
+   "ic95": [
+    -9.03,
+    24.31
+   ],
+   "p": 0.465,
+   "cambio_evento": 3.47,
+   "cambio_control": -3.47
+  },
+  "principal|S_liquidez|T-3->T-1": {
+   "dif": -2.08,
+   "ic95": [
+    -14.93,
+    11.11
+   ],
+   "p": 0.813,
+   "cambio_evento": -1.04,
+   "cambio_control": 1.04
+  },
+  "principal|S_estructural|T-5->T-1": {
+   "dif": -6.94,
+   "ic95": [
+    -21.18,
+    6.25
+   ],
+   "p": 0.395,
+   "cambio_evento": -3.47,
+   "cambio_control": 3.47
+  },
+  "principal|S_estructural|T-3->T-1": {
+   "dif": -4.17,
+   "ic95": [
+    -14.93,
+    7.29
+   ],
+   "p": 0.523,
+   "cambio_evento": -2.08,
+   "cambio_control": 2.08
+  },
+  "principal|S_coyuntural|T-5->T-1": {
+   "dif": 1.39,
+   "ic95": [
+    -25.69,
+    27.43
+   ],
+   "p": 0.941,
+   "cambio_evento": 0.69,
+   "cambio_control": -0.69
+  },
+  "principal|S_coyuntural|T-3->T-1": {
+   "dif": -13.89,
+   "ic95": [
+    -35.43,
+    7.64
+   ],
+   "p": 0.273,
+   "cambio_evento": -6.94,
+   "cambio_control": 6.94
+  },
+  "alt|IFFS|T-5->T-1": {
+   "dif": 4.66,
+   "ic95": [
+    -3.85,
+    14.47
+   ],
+   "p": 0.348,
+   "cambio_evento": 3.35,
+   "cambio_control": -1.31
+  },
+  "alt|IFFS|T-3->T-1": {
+   "dif": 1.53,
+   "ic95": [
+    -5.56,
+    8.45
+   ],
+   "p": 0.692,
+   "cambio_evento": 1.53,
+   "cambio_control": -0.0
+  },
+  "alt|S_solvencia|T-5->T-1": {
+   "dif": 9.03,
+   "ic95": [
+    -4.98,
+    25.06
+   ],
+   "p": 0.287,
+   "cambio_evento": 6.22,
+   "cambio_control": -2.81
+  },
+  "alt|S_solvencia|T-3->T-1": {
+   "dif": -0.28,
+   "ic95": [
+    -5.49,
+    4.58
+   ],
+   "p": 1.0,
+   "cambio_evento": 0.07,
+   "cambio_control": 0.35
+  },
+  "alt|S_liquidez|T-5->T-1": {
+   "dif": 4.51,
+   "ic95": [
+    -9.03,
+    19.11
+   ],
+   "p": 0.606,
+   "cambio_evento": 1.74,
+   "cambio_control": -2.78
+  },
+  "alt|S_liquidez|T-3->T-1": {
+   "dif": -0.35,
+   "ic95": [
+    -13.19,
+    12.85
+   ],
+   "p": 1.0,
+   "cambio_evento": -0.35,
+   "cambio_control": 0.0
+  },
+  "alt|S_estructural|T-5->T-1": {
+   "dif": 0.69,
+   "ic95": [
+    -12.85,
+    12.85
+   ],
+   "p": 0.962,
+   "cambio_evento": 2.08,
+   "cambio_control": 1.39
+  },
+  "alt|S_estructural|T-3->T-1": {
+   "dif": 5.21,
+   "ic95": [
+    -4.51,
+    14.93
+   ],
+   "p": 0.359,
+   "cambio_evento": 4.86,
+   "cambio_control": -0.35
+  },
+  "alt|S_coyuntural|T-5->T-1": {
+   "dif": -17.71,
+   "ic95": [
+    -43.06,
+    6.95
+   ],
+   "p": 0.208,
+   "cambio_evento": -7.29,
+   "cambio_control": 10.42
+  },
+  "alt|S_coyuntural|T-3->T-1": {
+   "dif": -16.67,
+   "ic95": [
+    -47.92,
+    12.86
+   ],
+   "p": 0.312,
+   "cambio_evento": -6.25,
+   "cambio_control": 10.42
+  }
+ },
+ "estudio_eventos": {
+  "-8": {
+   "evento": 63.1,
+   "control": 37.0,
+   "dif": 26.1,
+   "ic95": [
+    11.6,
+    39.9
+   ]
+  },
+  "-7": {
+   "evento": 65.6,
+   "control": 34.4,
+   "dif": 31.2,
+   "ic95": [
+    19.0,
+    43.8
+   ]
+  },
+  "-6": {
+   "evento": 64.1,
+   "control": 36.7,
+   "dif": 27.4,
+   "ic95": [
+    12.6,
+    42.9
+   ]
+  },
+  "-5": {
+   "evento": 65.2,
+   "control": 35.3,
+   "dif": 30.0,
+   "ic95": [
+    14.8,
+    44.4
+   ]
+  },
+  "-4": {
+   "evento": 66.7,
+   "control": 34.1,
+   "dif": 32.6,
+   "ic95": [
+    17.8,
+    46.8
+   ]
+  },
+  "-3": {
+   "evento": 68.6,
+   "control": 31.9,
+   "dif": 36.7,
+   "ic95": [
+    23.1,
+    51.2
+   ]
+  },
+  "-2": {
+   "evento": 69.2,
+   "control": 30.8,
+   "dif": 38.4,
+   "ic95": [
+    25.1,
+    51.2
+   ]
+  },
+  "-1": {
+   "evento": 68.4,
+   "control": 31.6,
+   "dif": 36.8,
+   "ic95": [
+    22.8,
+    50.0
+   ]
+  },
+  "0": {
+   "evento": 69.2,
+   "control": 30.8,
+   "dif": 38.4,
+   "ic95": [
+    24.2,
+    51.2
+   ]
+  },
+  "1": {
+   "evento": 67.2,
+   "control": 32.8,
+   "dif": 34.5,
+   "ic95": [
+    21.1,
+    47.5
+   ]
+  },
+  "2": {
+   "evento": 68.5,
+   "control": 31.5,
+   "dif": 37.0,
+   "ic95": [
+    22.6,
+    51.5
+   ]
+  },
+  "3": {
+   "evento": 68.8,
+   "control": 31.2,
+   "dif": 37.5,
+   "ic95": [
+    25.2,
+    49.7
+   ]
+  }
+ },
+ "la_rioja": {
+  "2019": {
+   "IFFS": 72.9,
+   "puesto": 6,
+   "solvencia": 85.4
+  },
+  "2020": {
+   "IFFS": 63.2,
+   "puesto": 8,
+   "solvencia": 85.4
+  },
+  "2021": {
+   "IFFS": 50.7,
+   "puesto": 13,
+   "solvencia": 81.2
+  },
+  "2022": {
+   "IFFS": 47.9,
+   "puesto": 14,
+   "solvencia": 68.8
+  },
+  "2023": {
+   "IFFS": 53.5,
+   "puesto": 13,
+   "solvencia": 89.6
+  },
+  "2024": {
+   "IFFS": 64.6,
+   "puesto": 7,
+   "solvencia": 93.8
+  }
+ },
+ "split_temporal": {
+  "anio_corte": 2019,
+  "obs_entrenamiento": 360,
+  "eventos_entrenamiento": 0,
+  "obs_evaluacion": 144,
+  "eventos_evaluacion": 13,
+  "viable": false,
+  "eventos_por_anio": {
+   "2020": 12,
+   "2025": 1
+  }
+ },
+ "auc_2019_especificaciones": {
+  "min": 0.819,
+  "max": 0.951,
+  "n": 18,
+  "detalle": {
+   "PRINCIPAL": 0.931,
+   "Normalización: base fija 2005-2012 (legado)": 0.938,
+   "Normalización: base fija 2005-2019": 0.944,
+   "Normalización: ventana móvil 8 años (sin mirar adelante)": 0.951,
+   "Normalización: ventana móvil 5 años": 0.944,
+   "Normalización: pooled todos los años": 0.944,
+   "Normalización: z-score base 2005-2012": 0.924,
+   "Normalización: z-score robusto (mediana/MAD, recorte ±3)": 0.924,
+   "Suavizado liquidez: media móvil 3 años": 0.938,
+   "Suavizado liquidez: 5 años": 0.938,
+   "Agregación: media geométrica": 0.917,
+   "Agregación: media cuadrática (penaliza extremos)": 0.924,
+   "Agregación: máximo de dimensiones (eslabón débil)": 0.819,
+   "Compuesto con las 4 dimensiones (incluye coyuntural)": 0.896,
+   "Compuesto sin rigidez (solvencia + liquidez)": 0.951,
+   "Pesos 50% solvencia / 25% / 25%": 0.951,
+   "Pesos 50% liquidez / 25% / 25%": 0.924,
+   "Pesos 50% estructural / 25% / 25%": 0.889
+  }
+ },
+ "la_pampa": {
+  "tratamiento_principal": "stock 2005-2017 tratado como faltante (no confiable, sin confirmación oficial)",
+  "obs_afectadas": 13,
+  "escenario_supuesto_miles": {
+   "n_compuesto": 503,
+   "dif_max_auc_placebo_2005_2017": 0.049,
+   "iffs_la_pampa_min": 10.4,
+   "iffs_la_pampa_max": 21.5
+  },
+  "efecto_sobre_resto": {
+   "corte_anual|supuesto_miles": 2.0,
+   "corte_anual|sin_tratar": 2.08,
+   "base_fija|supuesto_miles": 2.06,
+   "base_fija|sin_tratar": 1.75,
+   "zscore_base|supuesto_miles": 1.41,
+   "zscore_base|sin_tratar": 21.54,
+   "zscore_robusto_base|supuesto_miles": 1.11,
+   "zscore_robusto_base|sin_tratar": 1.89
+  },
+  "deuda_ingresos_max_base_sin_tratar": 165.7,
+  "deuda_ingresos_max_base_excluido": 2.14
+ },
+ "servicio_unidades": {
+  "n_obs_identidad": 460,
+  "n_sospechosas_fuera_la_pampa": 0,
+  "amort_sobre_stock_p5_p95": [
+   0.016,
+   0.329
+  ],
+  "tasa_implicita_p5_p95": [
+   0.003,
+   0.207
+  ],
+  "la_pampa_tasa_2006_2015_mediana_si_miles": 0.046,
+  "la_pampa_tasa_2006_2015_mediana_si_millones": 5e-05,
+  "san_luis_max_diferencia_amort_vs_caida": 0.0,
+  "santa_cruz_ffdp_stock_2023_2024": [
+   18922,
+   0
+  ],
+  "santa_cruz_ffdp_amortizacion_2024": 36472
+ },
+ "ranking_2024": {
+  "top6": [
+   {
+    "provincia": "Chubut",
+    "IFFS": 84.0
+   },
+   {
+    "provincia": "Río Negro",
+    "IFFS": 84.0
+   },
+   {
+    "provincia": "Jujuy",
+    "IFFS": 82.6
+   },
+   {
+    "provincia": "Salta",
+    "IFFS": 82.6
+   },
+   {
+    "provincia": "Neuquén",
+    "IFFS": 70.1
+   },
+   {
+    "provincia": "Buenos Aires",
+    "IFFS": 66.0
+   }
+  ],
+  "bottom3": [
+   {
+    "provincia": "Formosa",
+    "IFFS": 17.4
+   },
+   {
+    "provincia": "San Luis",
+    "IFFS": 14.6
+   },
+   {
+    "provincia": "La Pampa",
+    "IFFS": 9.0
+   }
+  ],
+  "n": 24
+ },
+ "caba": {
+  "servicio_ingresos_min": 0.023,
+  "mediana": 0.051,
+  "max": 0.153,
+  "otras_p50": 0.037
+ },
+ "perfiles": {
+  "k": 5,
+  "silhouette": 0.3
+ },
+ "backtest_proyeccion": {
+  "n": 278,
+  "mae_tendencia": 6.6,
+  "mae_ingenua": 4.6,
+  "tendencia_gana_pct": 29.0
+ },
+ "legado": {
+  "varianza_pc1": 0.47
+ },
+ "deriva_solvencia": {
+  "mediana_2005": 1.14,
+  "mediana_2012": 0.31,
+  "mediana_2024": 0.15
+ }
+}
