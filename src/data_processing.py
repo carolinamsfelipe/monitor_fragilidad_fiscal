@@ -49,14 +49,18 @@ RAW_DIR = ROOT_DIR / "data" / "raw" / "base_investigacion"
 DNAP_DIR = ROOT_DIR / "data" / "raw" / "fuentes_dnap"
 PROCESSED_DIR = ROOT_DIR / "data" / "processed"
 
-# Corrección de unidades del STOCK de deuda de La Pampa (auditoría Fase 1, hallazgo H2).
-# El archivo de la DNAP declara "millones", pero 1996-2017 está en MILES de pesos y desde 2018 en millones.
-# EVIDENCIA: (i) como millones, La Pampa sería 6x la deuda de las otras 23 provincias juntas en 1996 y 165x sus
-# ingresos en 2005 (imposible); (ii) los encabezados de los archivos traen también "In Thousands of Pesos";
-# (iii) la tabla nacional de marzo 2026 (en millones, total coincidente con el panel 2025 dentro de 4%) trae a
-# La Pampa en 500, la misma escala que 2018-2024, lo que descarta la hipótesis "todo en miles".
-# SUPUESTO NO CONFIRMADO OFICIALMENTE: que el cambio ocurra exactamente entre 2017 y 2018.
-LA_PAMPA_STOCK_MILES_HASTA = 2017
+# STOCK de deuda de La Pampa 2005-2017 -- DATO NO CONFIABLE (auditoría Fase 1, hallazgo H2).
+# [EVIDENCIA] Cargado como millones, La Pampa sería 6x la deuda de las otras 23 provincias juntas en 1996 y 165x sus
+# ingresos en 2005: imposible. La serie además salta de forma errática (2015: 79.418 -> 2016: 555.836 -> 2017: 33.436 ->
+# 2018: 1.343) y el archivo de la DNAP declara "millones" y "miles" a la vez.
+# [SUPUESTO, NO CONFIRMADO] Que el archivo esté en miles hasta 2017 y en millones desde 2018. No hay confirmación oficial
+# de la DNAP ni de la cuenta de inversión provincial.
+# [DECISIÓN DE DISEÑO] En el análisis principal esos años se tratan como FALTANTES (no se corrigen ni se descartan en
+# silencio: el valor original se conserva en `deuda_stock_total_fuente` y se marca en `stock_estado`). La corrección
+# ÷1.000 existe SOLO como escenario de sensibilidad, rotulado como supuesto (`la_pampa="sensibilidad_miles"`).
+LA_PAMPA_STOCK_DUDOSO_HASTA = 2017
+TRATAMIENTOS_LA_PAMPA = ("excluir", "sensibilidad_miles", "sin_tratar")  # 'sin_tratar' = SOLO auditoría (usa el dato tal cual viene)
+ANIOS_PANEL = tuple(range(2005, 2026))
 
 PROVINCIAS_24 = [
     "Buenos Aires", "Catamarca", "Chaco", "Chubut", "Ciudad", "Córdoba",
@@ -86,6 +90,7 @@ def _require_columns(df: pd.DataFrame, columns: Iterable[str], source: str) -> N
 
 def _normalizar_provincia(serie: pd.Series) -> pd.Series:
     """Uniformiza el nombre de la Ciudad de Buenos Aires ('Ciudad' -> 'CABA')."""
+    serie = serie.astype(str).str.replace(r"\s+", " ", regex=True).str.strip()  # 'Santiago del  Estero' -> 'Santiago del Estero'
     return serie.replace({"Ciudad": CABA_LABEL, "Ciudad de Buenos Aires": CABA_LABEL})
 
 
@@ -121,7 +126,18 @@ def load_panel_fiscal_benchmarks(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
     return df
 
 
-def load_deuda_ratios(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
+def load_deuda_ratios(raw_dir: Path = RAW_DIR, la_pampa: str = "excluir") -> pd.DataFrame:
+    """
+    Panel de deuda/servicio sobre ingresos con los tratamientos de la auditoría ya aplicados:
+
+    - CABA: servicio corregido desde la hoja `Millones` de la DNAP (error de unidades x1000).
+    - La Pampa 2005-2017: stock no confiable -> NaN (`la_pampa="excluir"`, por defecto) o, solo como SENSIBILIDAD
+      etiquetada como supuesto, dividido por 1.000 (`la_pampa="sensibilidad_miles"`). `"sin_tratar"` deja el dato tal
+      cual viene y existe únicamente para medir en la auditoría cuánto distorsionaría un error de unidades.
+    - Ingresos corrientes <= 0 (dato no reportado codificado como cero) -> NaN.
+    """
+    if la_pampa not in TRATAMIENTOS_LA_PAMPA:
+        raise ValueError(f"la_pampa debe ser uno de {TRATAMIENTOS_LA_PAMPA}, no {la_pampa!r}")
     df = pd.read_csv(raw_dir / "deuda_ratios_provincia_anio.csv")
     _require_columns(
         df,
@@ -133,22 +149,35 @@ def load_deuda_ratios(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
     df["anio"] = df["anio"].astype(int)
     df["servicio_confiable"] = df["servicio_confiable"].astype(bool)
     df = _corregir_servicio_caba(df)
-    df = _corregir_stock_la_pampa(df)
     # Cualquier otra observación marcada como no confiable se anula explícitamente (no se deja un número dudoso).
     mask_no_confiable = ~df["servicio_confiable"]
     df.loc[mask_no_confiable, "servicio_sobre_ingresos"] = np.nan
     df.loc[mask_no_confiable, "servicio_total"] = np.nan
+    # Ingresos <= 0: dato no reportado (p. ej. La Pampa 2025), no un cero real.
+    sin_ingresos = ~(df["ingresos_corrientes"] > 0)
+    df.loc[sin_ingresos, ["ingresos_corrientes", "deuda_sobre_ingresos", "servicio_sobre_ingresos"]] = np.nan
+    df = _tratar_stock_la_pampa(df, la_pampa)
     return df
 
 
-def _corregir_stock_la_pampa(df: pd.DataFrame) -> pd.DataFrame:
-    """Divide por 1000 el stock de La Pampa hasta 2017 (miles -> millones) y recalcula Deuda/Ingresos."""
+def _tratar_stock_la_pampa(df: pd.DataFrame, modo: str) -> pd.DataFrame:
+    """
+    Trata el stock de La Pampa 2005-2017 (ver constantes al inicio del módulo). Siempre conserva el valor original en
+    `deuda_stock_total_fuente` y deja rastro en `stock_estado` ('confiable' | 'no_confiable_excluido' | 'supuesto_miles').
+    """
     df = df.copy()
-    df["stock_corregido_unidades"] = False
-    m = (df["provincia"] == "La Pampa") & (df["anio"] <= LA_PAMPA_STOCK_MILES_HASTA)
-    df.loc[m, "deuda_stock_total"] = df.loc[m, "deuda_stock_total"] / 1000.0
-    df.loc[m, "deuda_sobre_ingresos"] = _safe_divide(df.loc[m, "deuda_stock_total"], df.loc[m, "ingresos_corrientes"])
-    df.loc[m, "stock_corregido_unidades"] = True
+    df["deuda_stock_total_fuente"] = df["deuda_stock_total"]
+    df["stock_estado"] = "confiable"
+    m = (df["provincia"] == "La Pampa") & (df["anio"] <= LA_PAMPA_STOCK_DUDOSO_HASTA)
+    if modo == "excluir":
+        df.loc[m, ["deuda_stock_total", "deuda_sobre_ingresos"]] = np.nan
+        df.loc[m, "stock_estado"] = "no_confiable_excluido"
+    elif modo == "sin_tratar":                     # solo para medir cuánto distorsionaría el dato sin tratar
+        df.loc[m, "stock_estado"] = "sin_tratar_dudoso"
+    else:
+        df.loc[m, "deuda_stock_total"] = df.loc[m, "deuda_stock_total"] / 1000.0
+        df.loc[m, "deuda_sobre_ingresos"] = _safe_divide(df.loc[m, "deuda_stock_total"], df.loc[m, "ingresos_corrientes"])
+        df.loc[m, "stock_estado"] = "supuesto_miles"
     return df
 
 
@@ -230,51 +259,61 @@ def load_eventos_estres(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
     return df
 
 
+def load_composicion_deuda(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
+    """Participación de los títulos públicos (bonos) en el stock de deuda (%). Es un cociente entre columnas del mismo
+    archivo, por lo que no depende de la unidad del archivo (sirve incluso para La Pampa 2005-2017)."""
+    d = pd.read_csv(raw_dir / "deuda_provincial_panel_1996_2025.csv")
+    _require_columns(d, ["provincia", "anio", "variable", "valor_millones_pesos_corrientes"], "deuda_provincial_panel")
+    d["provincia"] = _normalizar_provincia(d["provincia"])
+    w = d.pivot_table(index=["provincia", "anio"], columns="variable", values="valor_millones_pesos_corrientes").reset_index()
+    w["pct_bonos"] = 100.0 * _safe_divide(w["deuda_titulos_publicos_bonos"], w["deuda_total_sin_flotante"])
+    return w[["provincia", "anio", "pct_bonos"]]
+
+
 # ---------------------------------------------------------------------------
 # Panel maestro
 # ---------------------------------------------------------------------------
 
-def construir_panel_maestro(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
+def construir_panel_maestro(raw_dir: Path = RAW_DIR, la_pampa: str = "excluir") -> pd.DataFrame:
     """
-    Arma el panel Provincia x Año (2005-2025, 24 jurisdicciones) con todas las
-    variables fiscales, de deuda y de capacidad de respuesta necesarias para
-    construir el IFFS y el resto de los indicadores del dashboard.
+    Arma el panel Provincia x Año COMPLETO (24 jurisdicciones x 2005-2025 = 504 filas) con todas las variables fiscales,
+    de deuda y de capacidad de respuesta necesarias para construir el IFFS.
 
-    Devuelve un DataFrame con una fila por (provincia, año) y columnas anchas.
-    Los valores faltantes se dejan como NaN explícito -- ninguna imputación.
+    Los valores faltantes se dejan como NaN explícito -- ninguna imputación. Las filas que la fuente no trae (p. ej.
+    La Pampa 2025 en el panel de deuda) se crean vacías para que la cobertura sea visible y contable.
+    `la_pampa` controla el tratamiento del stock dudoso de La Pampa (ver `TRATAMIENTOS_LA_PAMPA`).
     """
-    ratios = load_deuda_ratios(raw_dir)
+    ratios = load_deuda_ratios(raw_dir, la_pampa=la_pampa)
     benchmarks = load_panel_fiscal_benchmarks(raw_dir)
     capacidad = load_capacidad_respuesta(raw_dir)
     moneda = load_deuda_moneda(raw_dir)
+    comp = load_composicion_deuda(raw_dir)
 
-    panel = ratios.merge(
-        benchmarks[[
-            "provincia", "anio", "B_dependencia_transferencias", "C_rigidez_personal",
-            "D_resultado_fiscal_pct_ingresos", "gastos_totales", "gasto_personal",
-        ]],
-        on=["provincia", "anio"], how="left",
-    )
+    provincias = sorted(set(ratios["provincia"]) | set(benchmarks["provincia"]))
+    grilla = pd.MultiIndex.from_product([provincias, ANIOS_PANEL], names=["provincia", "anio"]).to_frame(index=False)
+    panel = grilla.merge(ratios, on=["provincia", "anio"], how="left")
+    panel["stock_estado"] = panel["stock_estado"].fillna("sin_dato")
 
-    # Rigidez del gasto = personal / gasto total (variable núcleo del IFFS-B,
-    # ver 16-especificacion-iffs-v0.1.md: se prefiere sobre Personal/Ingresos
-    # para no duplicar el shock de ingresos ya capturado en Deuda/Ingresos).
+    # Un cero en ejecución presupuestaria es un dato no reportado (La Pampa 2025), no un valor real.
+    cols_bench = ["provincia", "anio", "B_dependencia_transferencias", "C_rigidez_personal",
+                  "D_resultado_fiscal_pct_ingresos", "gastos_totales", "gasto_personal", "ingresos_totales"]
+    panel = panel.merge(benchmarks[cols_bench], on=["provincia", "anio"], how="left")
+    sin_ejec = ~(panel["gastos_totales"] > 0)
+    panel.loc[sin_ejec, ["gastos_totales", "gasto_personal", "ingresos_totales"]] = np.nan
+
+    # Rigidez del gasto = personal / gasto total (se prefiere sobre Personal/Ingresos para no duplicar el shock de
+    # ingresos ya capturado en Deuda/Ingresos).
     panel["rigidez_gastototal"] = _safe_divide(panel["gasto_personal"], panel["gastos_totales"])
 
-    # Fragilidad del resultado = -(resultado financiero / ingresos corrientes),
-    # transformado ANTES de percentilar para que "mayor = más frágil" en las
-    # cuatro dimensiones (ver 16-especificacion-iffs-v0.1.md).
+    # Fragilidad del resultado = -(resultado financiero / ingresos), transformado para que "mayor = más frágil".
     panel["fragilidad_resultado"] = -panel["D_resultado_fiscal_pct_ingresos"]
 
     panel = panel.merge(
         capacidad[["provincia", "anio", "liquidezmeses", "flexibilidad", "capacidadoperativa"]],
         on=["provincia", "anio"], how="left",
     )
-
-    panel = panel.merge(
-        moneda[["provincia", "anio", "pct_moneda_extranjera"]],
-        on=["provincia", "anio"], how="left",
-    )
+    panel = panel.merge(moneda[["provincia", "anio", "pct_moneda_extranjera"]], on=["provincia", "anio"], how="left")
+    panel = panel.merge(comp, on=["provincia", "anio"], how="left")
 
     panel = panel.rename(columns={"B_dependencia_transferencias": "dependencia_transferencias"})
     panel = panel.sort_values(["provincia", "anio"]).reset_index(drop=True)
@@ -283,33 +322,38 @@ def construir_panel_maestro(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
 
 def validar_panel_maestro(panel: pd.DataFrame) -> list[str]:
     """
-    Corre una batería mínima de sanity checks sobre el panel maestro y
-    devuelve una lista de advertencias en texto plano (no lanza excepción:
-    el panel se sabe incompleto en partes, documentado como limitación).
+    Batería de controles sobre el panel maestro. Devuelve avisos en texto plano (no lanza excepción: el panel se sabe
+    incompleto en partes y eso está documentado como limitación).
     """
     avisos = []
 
     n_prov = panel["provincia"].nunique()
     if n_prov != 24:
         avisos.append(f"Se esperaban 24 jurisdicciones, se encontraron {n_prov}.")
-
     dup = panel.duplicated(subset=["provincia", "anio"]).sum()
     if dup:
         avisos.append(f"{dup} filas duplicadas en (provincia, año).")
+    if len(panel) != 24 * len(ANIOS_PANEL):
+        avisos.append(f"El panel tiene {len(panel)} filas; se esperaban {24 * len(ANIOS_PANEL)}.")
 
     for col in ["deuda_sobre_ingresos", "servicio_sobre_ingresos", "rigidez_gastototal"]:
         negativos = (panel[col] < 0).sum()
         if negativos:
             avisos.append(f"{negativos} valores negativos en '{col}' (revisar).")
+    fuera = panel["pct_moneda_extranjera"].dropna().pipe(lambda s: ((s < 0) | (s > 100)).sum())
+    if fuera:
+        avisos.append(f"{fuera} valores fuera de [0,100] en 'pct_moneda_extranjera'.")
 
-    for col in ["pct_moneda_extranjera"]:
-        fuera_rango = panel[col].dropna().pipe(lambda s: ((s < 0) | (s > 100)).sum())
-        if fuera_rango:
-            avisos.append(f"{fuera_rango} valores fuera de [0,100] en '{col}'.")
-
-    if "stock_corregido_unidades" in panel and panel["stock_corregido_unidades"].any():
-        avisos.append("Corrección aplicada: stock de deuda de La Pampa 2005-2017 dividido por 1.000 (la fuente lo trae en "
-                      "miles aunque declara millones). Evidencia sólida pero SIN confirmación oficial de la DNAP.")
+    if "stock_estado" in panel:
+        n_excl = int((panel["stock_estado"] == "no_confiable_excluido").sum())
+        n_sup = int((panel["stock_estado"] == "supuesto_miles").sum())
+        if n_excl:
+            avisos.append(f"La Pampa 2005-{LA_PAMPA_STOCK_DUDOSO_HASTA} ({n_excl} obs.): stock de deuda con posible error de "
+                          "unidades y SIN confirmación oficial -> tratado como faltante en el análisis principal "
+                          "(no se corrige ni se borra el original: ver `deuda_stock_total_fuente`).")
+        if n_sup:
+            avisos.append(f"ESCENARIO DE SENSIBILIDAD: La Pampa 2005-{LA_PAMPA_STOCK_DUDOSO_HASTA} ({n_sup} obs.) dividido por 1.000 "
+                          "bajo el SUPUESTO (no confirmado) de que la fuente está en miles.")
     altos = panel[panel["deuda_sobre_ingresos"] > 5]
     if not altos.empty:
         avisos.append(f"{len(altos)} observaciones con Deuda/Ingresos > 5x ({', '.join(sorted(altos['provincia'].unique()))}): "
@@ -320,5 +364,7 @@ def validar_panel_maestro(panel: pd.DataFrame) -> list[str]:
         avisos.append(f"{implausibles} observaciones con servicio/ingresos > 50%: posible error de unidades, revisar.")
     if panel.loc[panel["provincia"] == CABA_LABEL, "servicio_sobre_ingresos"].isna().all():
         avisos.append("CABA sin servicio de deuda: no se encontró la fuente `data/raw/fuentes_dnap/servicio_caba.xlsx`.")
-
+    sin_2025 = panel[(panel["anio"] == 2025) & panel["ingresos_corrientes"].isna()]["provincia"].tolist()
+    if sin_2025:
+        avisos.append(f"Sin ejecución presupuestaria 2025 ({', '.join(sin_2025)}): dato no reportado, queda como faltante.")
     return avisos
