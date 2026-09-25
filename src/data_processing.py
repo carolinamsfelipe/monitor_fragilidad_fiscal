@@ -49,6 +49,15 @@ RAW_DIR = ROOT_DIR / "data" / "raw" / "base_investigacion"
 DNAP_DIR = ROOT_DIR / "data" / "raw" / "fuentes_dnap"
 PROCESSED_DIR = ROOT_DIR / "data" / "processed"
 
+# Corrección de unidades del STOCK de deuda de La Pampa (auditoría Fase 1, hallazgo H2).
+# El archivo de la DNAP declara "millones", pero 1996-2017 está en MILES de pesos y desde 2018 en millones.
+# EVIDENCIA: (i) como millones, La Pampa sería 6x la deuda de las otras 23 provincias juntas en 1996 y 165x sus
+# ingresos en 2005 (imposible); (ii) los encabezados de los archivos traen también "In Thousands of Pesos";
+# (iii) la tabla nacional de marzo 2026 (en millones, total coincidente con el panel 2025 dentro de 4%) trae a
+# La Pampa en 500, la misma escala que 2018-2024, lo que descarta la hipótesis "todo en miles".
+# SUPUESTO NO CONFIRMADO OFICIALMENTE: que el cambio ocurra exactamente entre 2017 y 2018.
+LA_PAMPA_STOCK_MILES_HASTA = 2017
+
 PROVINCIAS_24 = [
     "Buenos Aires", "Catamarca", "Chaco", "Chubut", "Ciudad", "Córdoba",
     "Corrientes", "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja",
@@ -124,10 +133,22 @@ def load_deuda_ratios(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
     df["anio"] = df["anio"].astype(int)
     df["servicio_confiable"] = df["servicio_confiable"].astype(bool)
     df = _corregir_servicio_caba(df)
+    df = _corregir_stock_la_pampa(df)
     # Cualquier otra observación marcada como no confiable se anula explícitamente (no se deja un número dudoso).
     mask_no_confiable = ~df["servicio_confiable"]
     df.loc[mask_no_confiable, "servicio_sobre_ingresos"] = np.nan
     df.loc[mask_no_confiable, "servicio_total"] = np.nan
+    return df
+
+
+def _corregir_stock_la_pampa(df: pd.DataFrame) -> pd.DataFrame:
+    """Divide por 1000 el stock de La Pampa hasta 2017 (miles -> millones) y recalcula Deuda/Ingresos."""
+    df = df.copy()
+    df["stock_corregido_unidades"] = False
+    m = (df["provincia"] == "La Pampa") & (df["anio"] <= LA_PAMPA_STOCK_MILES_HASTA)
+    df.loc[m, "deuda_stock_total"] = df.loc[m, "deuda_stock_total"] / 1000.0
+    df.loc[m, "deuda_sobre_ingresos"] = _safe_divide(df.loc[m, "deuda_stock_total"], df.loc[m, "ingresos_corrientes"])
+    df.loc[m, "stock_corregido_unidades"] = True
     return df
 
 
@@ -286,6 +307,9 @@ def validar_panel_maestro(panel: pd.DataFrame) -> list[str]:
         if fuera_rango:
             avisos.append(f"{fuera_rango} valores fuera de [0,100] en '{col}'.")
 
+    if "stock_corregido_unidades" in panel and panel["stock_corregido_unidades"].any():
+        avisos.append("Corrección aplicada: stock de deuda de La Pampa 2005-2017 dividido por 1.000 (la fuente lo trae en "
+                      "miles aunque declara millones). Evidencia sólida pero SIN confirmación oficial de la DNAP.")
     altos = panel[panel["deuda_sobre_ingresos"] > 5]
     if not altos.empty:
         avisos.append(f"{len(altos)} observaciones con Deuda/Ingresos > 5x ({', '.join(sorted(altos['provincia'].unique()))}): "
