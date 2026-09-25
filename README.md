@@ -140,7 +140,7 @@ claramente más altos que el resto (AUC descriptiva ≈ 0.97).
 
 Machine learning clásico (scikit-learn), sin APIs ni claves ni costo, reproducible con semilla fija:
 
-- **Perfiles fiscales (k-means)**, ajustados solo con la ventana 2005-2012 (silhouette ≈ 0.30: estructura moderada).
+- **Perfiles fiscales (k-means)**, ajustados solo con la ventana 2005-2012 (silhouette ≈ 0.31: estructura moderada).
 - **Anomalías (Isolation Forest)**: descriptivo, no predictivo.
 - **Proyección por tendencia + backtest**: en el backtest a 1 año **no supera** a repetir el último valor (se informa tal cual).
 - **Simulador de escenarios**: caída de ingresos, depreciación y suba del servicio (sensibilidad mecánica, no pronóstico).
@@ -158,7 +158,7 @@ Machine learning clásico (scikit-learn), sin APIs ni claves ni costo, reproduci
 
 ## 7. Limitaciones y pendientes (resumen — detalle completo en el notebook, Sección 17)
 
-- **La Pampa:** el stock 2005-2017 es casi seguro un error de unidades de la fuente (sin confirmar con la DNAP); sus puntajes de solvencia de esos años no son confiables.
+- **La Pampa:** el stock 2005-2017 estaba en miles aunque la fuente declara millones; se corrige (÷1.000) con evidencia sólida pero **sin confirmación oficial de la DNAP**.
 - **Exposición cambiaria por provincia**: sin fuente primaria descargable (solo consolidado nacional).
 - **Composición de deuda por moneda**: cobertura de solo 11-13 de 24 provincias.
 - Sin base pública gratuita de calificaciones crediticias provinciales.

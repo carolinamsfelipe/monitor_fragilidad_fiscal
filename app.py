@@ -32,6 +32,12 @@ from src import indicators as ind
 from src import modeling as mdl
 from src import analytics as an
 
+# Streamlit no recarga los módulos ya importados cuando cambian en disco (p. ej. tras un deploy): se fuerza la recarga
+# para que los cambios en src/ se vean sin reiniciar el proceso.
+import importlib
+for _modulo in (dp, ind, mdl, an):
+    importlib.reload(_modulo)
+
 st.set_page_config(
     page_title="Monitor de Fragilidad Fiscal Provincial",
     page_icon="📊",
@@ -43,8 +49,19 @@ st.set_page_config(
 # Carga de datos (cacheada)
 # ---------------------------------------------------------------------------
 
+def _huella_archivos() -> str:
+    """Hash del código y los datos: si cambia cualquier archivo, la caché se invalida (evita mostrar resultados viejos)."""
+    import hashlib
+    h = hashlib.md5()
+    for carpeta, patron in [("src", "*.py"), ("data/raw", "**/*")]:
+        for f in sorted((PROJECT_ROOT / carpeta).glob(patron)):
+            if f.is_file():
+                h.update(f.name.encode()); h.update(f.read_bytes())
+    return h.hexdigest()
+
+
 @st.cache_data(show_spinner="Cargando y procesando datos fiscales provinciales...")
-def cargar_datos():
+def cargar_datos(huella: str):
     panel = dp.construir_panel_maestro()
     avisos = dp.validar_panel_maestro(panel)
     panel_iffs, meta = ind.construir_iffs(panel)
@@ -55,7 +72,7 @@ def cargar_datos():
     return panel_iffs, meta, avisos, eventos, panel_target, info_perfiles, backtest
 
 
-panel_iffs, meta_iffs, avisos_validacion, eventos, panel_target, info_perfiles, backtest_proy = cargar_datos()
+panel_iffs, meta_iffs, avisos_validacion, eventos, panel_target, info_perfiles, backtest_proy = cargar_datos(_huella_archivos())
 
 PROVINCIAS = sorted(panel_iffs["provincia"].unique())
 ANIOS = sorted(panel_iffs["anio"].unique())
