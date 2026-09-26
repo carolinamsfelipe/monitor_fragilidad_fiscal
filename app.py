@@ -43,11 +43,44 @@ if not getattr(_DG, "_es_parcheado", False):
     _DG.metric = lambda self, label, value, delta=None, *a, **k: _orig_metric(self, _es(label), _es(value), _es(delta), *a, **k)
     _DG._es_parcheado = True
 
+# Tablas en castellano: conservar valores numéricos y ordenar correctamente,
+# pero mostrar coma decimal; el punto de miles solo en enteros grandes (un año nunca es "2.020").
+def _formato_es(df):
+    fmt = {}
+    for col in df.columns:
+        if pd.api.types.is_bool_dtype(df[col]):
+            continue
+        if pd.api.types.is_integer_dtype(df[col]):
+            fmt[col] = lambda v: "s/d" if pd.isna(v) else (f"{v:d}" if abs(v) < 10000 else f"{v:,d}".replace(",", "."))
+        elif pd.api.types.is_float_dtype(df[col]):
+            med = df[col].abs().median()
+            d = 3 if pd.notna(med) and 0 < med < 0.1 else 2      # razones chicas (servicio/ingresos) necesitan un decimal más
+            fmt[col] = lambda v, d=d: "s/d" if pd.isna(v) else f"{v:,.{d}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return fmt
+
+_st_dataframe = st.dataframe
+def _tabla_es(df, *args, **kwargs):
+    if isinstance(df, pd.DataFrame):
+        df = df.copy()
+        for col in df.select_dtypes(include=["object", "string"]).columns:      # celdas de texto con cifras ("0.93 [0.81–1.00]")
+            df[col] = df[col].map(_es)
+        df = df.style.format(_formato_es(df), na_rep="s/d")
+    elif hasattr(df, "format") and hasattr(df, "data"):
+        df = df.format(precision=2, thousands=".", decimal=",", na_rep="s/d")
+    return _st_dataframe(df, *args, **kwargs)
+st.dataframe = _tabla_es
+
+import plotly.io as _pio
+_pio.templates[_pio.templates.default].layout.separators = ",."   # coma decimal y punto de miles en gráficos
+
 st.set_page_config(page_title="Monitor de Fragilidad Fiscal Provincial", page_icon="📊", layout="wide")
 
 COLOR_DIM = {"solvencia": "#2a78d6", "liquidez": "#eb6834", "estructural": "#1baf7a", "coyuntural": "#4a3aa7"}
 COLOR_POS = {**ind.COLORES_CUARTIL}
 TABLAS = ROOT / "outputs" / "tables"
+px.defaults.labels = {"anio": "Año", "provincia": "Provincia", "IFFS": "IFFS relativo (0-100)",
+                     "valor": "Valor", "variable": "Indicador", "perfil_nombre": "Perfil",
+                     "posicion": "Posición", "value": "Valor", "dimension": "Dimensión"}
 
 
 # ---------------------------------------------------------------------------
@@ -97,15 +130,16 @@ st.caption("Posición **relativa** de cada jurisdicción frente a sus pares (per
 if escenario != "excluir":
     st.warning("**Escenario de sensibilidad activo.** La Pampa 2005-2017 se calcula dividiendo su stock de deuda por 1.000 bajo el SUPUESTO "
                "(sin confirmación oficial) de que la fuente está en miles. Las tablas de validación de la pestaña ✅ corresponden al análisis principal.")
+RESULTADOS_VIGENTES = bool(R and R.get("huella") == HUELLA)
 if R is None:
-    st.error("Falta `outputs/resultados_clave.json`: ejecutá `python scripts/generar_resultados.py`. La pestaña de validación no está disponible.")
-elif R.get("huella") != HUELLA:
-    st.warning("Las tablas de `outputs/` se generaron con una versión anterior del código o de los datos: volvé a ejecutar "
-               "`python scripts/generar_resultados.py` para que la validación coincida con lo que se ve acá.")
+    st.info("La validación histórica no está disponible todavía. El panel descriptivo sigue disponible.")
+elif not RESULTADOS_VIGENTES:
+    with st.expander("Validación histórica no sincronizada", expanded=False):
+        st.caption("Las cifras de validación no corresponden exactamente a este código y estos datos. Se ocultan para evitar mezclar versiones; el panel descriptivo sí se calcula al abrir la aplicación.")
 
 panel_f = panel[panel["anio"].between(*periodo)]
-(t_res, t_rank, t_evo, t_det, t_val, t_rob, t_perf, t_sim, t_dat) = st.tabs(
-    ["🏠 Resumen", "🏆 Ranking", "📈 Evolución", "🔎 Detalle", "✅ Validación", "🧪 Robustez", "🧩 Perfiles y cambios", "🎛️ Simulador", "📥 Datos y cobertura"])
+(t_res, t_rank, t_compare, t_evo, t_det, t_val, t_rob, t_perf, t_sim, t_dat, t_fuentes) = st.tabs(
+    ["🏠 Resumen", "🏆 Ranking", "⚖️ Comparar", "📈 Evolución", "🔎 Detalle", "✅ Validación", "🧪 Robustez", "🧩 Perfiles y cambios", "🎛️ Simulador", "📥 Datos y cobertura", "📚 Fuentes y guía"])
 
 TIPOS = ("**Evidencia** = calculado en los datos · **Interpretación** = lectura económica · **Supuesto** = no verificado · "
          "**Diseño** = decisión de construcción · **Limitación** = lo que no se puede concluir.")
@@ -128,7 +162,7 @@ with t_res:
     if R:
         c1.metric("Cobertura del compuesto", f"{R['cobertura']['n_compuesto']} de {R['cobertura']['n_total']}", f"{R['cobertura']['pct_compuesto']}%", delta_color="off")
         d = R["discriminacion_2019"]["IFFS compuesto (principal)"]
-        c2.metric("AUC en 2019 (discriminación)", f"{d['auc']:.2f}", f"IC95% {d['ic95'][0]:.2f}–{d['ic95'][1]:.2f}", delta_color="off")
+        c2.metric("AUC en 2019 (discriminación)", f"{d['auc']:.2f}", f"IC95% {d['ic95'][0]:.2f}–{d['ic95'][1]:.2f}", delta_color="off", help="Mide si el índice ordena más alto al grupo que luego tuvo eventos. No significa 93% de probabilidad de default ni demuestra anticipación.")
         c3.metric("Eventos (default/reestructuración)", f"{R['eventos']['n_eventos']}", f"{R['eventos']['n_covid']} en el mismo shock 2020-21", delta_color="off")
     st.info(TIPOS)
     st.markdown("""
@@ -162,7 +196,9 @@ with t_res:
     st.markdown(
         "- **CABA** (*evidencia*): el servicio de deuda estaba x1.000 por un error de unidades del procesamiento; se lee la hoja `Millones` de la DNAP, con validación automática.\n"
         "- **La Pampa 2005-2017** (*decisión de diseño*): posible error de unidades **sin confirmación oficial** → se trata como faltante (no se corrige ni se borra el original). "
-        "La corrección ÷1.000 se muestra solo como sensibilidad (barra lateral).")
+         "La corrección ÷1.000 se muestra solo como sensibilidad (barra lateral).")
+    st.markdown("### Qué análisis automático incluye")
+    st.info("Hay análisis reproducible con reglas explícitas y aprendizaje automático descriptivo (perfiles y observaciones inusuales). No se conecta a un servicio de IA generativa ni redacta conclusiones libres: cada texto automático sale de cifras calculadas. Así evitamos atribuir causas o inventar contexto.")
 
 
 # ---------------------------------------------------------------------------
@@ -190,7 +226,40 @@ with t_rank:
     fh = px.imshow(piv, color_continuous_scale="YlOrRd", zmin=0, zmax=100, aspect="auto",
                    title="Mapa de calor del compuesto (celdas vacías = sin dato)", labels=dict(x="Año", y="Provincia", color="IFFS"))
     fh.update_layout(height=620)
-    st.plotly_chart(fh, width="stretch")
+    with st.expander("Trayectoria completa de las 24 jurisdicciones (útil para explorar; menos práctica para comparar) ", expanded=False):
+        st.caption("Cada color muestra la posición relativa dentro de ese año; no permite comparar niveles absolutos entre años. Gris/vacío significa que falta información.")
+        st.plotly_chart(fh, width="stretch")
+
+
+# ---------------------------------------------------------------------------
+# Comparación guiada
+# ---------------------------------------------------------------------------
+with t_compare:
+    st.subheader("Comparar jurisdicciones en un mismo Año")
+    st.caption("Elegí pocas jurisdicciones para leer el gráfico con facilidad. Los puntos son posiciones relativas frente a los pares del mismo Año; la tabla debajo conserva también los indicadores en sus unidades originales.")
+    ac = st.select_slider("Año de comparación", options=ANIOS, value=max(ANIOS), key="anio_comparar")
+    comp_sel = st.multiselect("Jurisdicciones", PROVINCIAS, default=provincias_comparar[:4], key="seleccion_comparar")
+    dc = panel[(panel.anio == ac) & panel.provincia.isin(comp_sel)].copy()
+    if dc.empty:
+        st.info("Seleccioná al menos una jurisdicción.")
+    else:
+        figc = go.Figure()
+        for dim in ind.DIMS_NUCLEO:
+            col = f"S_{dim}"
+            figc.add_scatter(x=dc[col], y=dc.provincia, mode="markers", name=ind.NOMBRE_DIM[dim],
+                             marker=dict(size=11, color=COLOR_DIM[dim]),
+                             hovertemplate="%{y}<br>" + ind.NOMBRE_DIM[dim] + ": %{x:.1f}/100<extra></extra>")
+        figc.add_scatter(x=dc.IFFS, y=dc.provincia, mode="markers", name="Compuesto",
+                         marker=dict(size=14, color="#171717", symbol="diamond"),
+                         hovertemplate="%{y}<br>Compuesto: %{x:.1f}/100<extra></extra>")
+        figc.update_layout(title=f"Subíndices y compuesto · {ac}", xaxis=dict(range=[0,100], title="Posición relativa (0 = menor fragilidad entre pares; 100 = mayor)"),
+                           yaxis_title="", height=max(300, 62 * len(dc)), legend=dict(orientation="h", y=-0.2))
+        st.plotly_chart(figc, width="stretch")
+        cols_comp = ["provincia", "IFFS", "posicion", "deuda_sobre_ingresos", "servicio_sobre_ingresos", "rigidez_gastototal"]
+        tabla_comp = dc[cols_comp].rename(columns={"provincia":"Provincia", "IFFS":"IFFS relativo (0-100)", "posicion":"Cuartil",
+                                                  "deuda_sobre_ingresos":"Deuda / ingresos (x)", "servicio_sobre_ingresos":"Servicio / ingresos (x)", "rigidez_gastototal":"Personal / gasto total"}).round(3)
+        st.dataframe(tabla_comp.style.format(_formato_es(tabla_comp), na_rep="s/d"), hide_index=True, width="stretch")
+        st.caption("Los ratios originales ayudan a leer qué hay detrás del orden relativo. ‘s/d’ indica falta de dato; no se completa por estimación.")
 
 
 # ---------------------------------------------------------------------------
@@ -259,7 +328,8 @@ with t_det:
 # Validación
 # ---------------------------------------------------------------------------
 with t_val:
-    if R is None:
+    if not RESULTADOS_VIGENTES:
+        st.info("Los resultados de validación se muestran cuando las tablas y el código están sincronizados. Esta pestaña evita presentar cifras de otra versión.")
         st.stop()
     st.markdown("## Validación: tres preguntas distintas")
     st.info("**Descripción** (¿qué muestra?) · **Discriminación** (¿el grupo con evento tenía un score más alto en una fecha?) · **Anticipación** (¿el score *subió* antes del evento?). "
@@ -331,7 +401,8 @@ with t_val:
 # Robustez
 # ---------------------------------------------------------------------------
 with t_rob:
-    if R is None:
+    if not RESULTADOS_VIGENTES:
+        st.info("El análisis de robustez se muestra cuando las tablas y el código están sincronizados.")
         st.stop()
     st.markdown("### Sensibilidad del ordenamiento a cada decisión de diseño (una a la vez)")
     sp = TAB["T05_comparacion_especificaciones"].copy()
@@ -384,11 +455,11 @@ with t_perf:
     n_emp = int((cam["d_iffs_1a"] > 0).sum())
     if n_emp >= 0.75 * len(cam):
         st.warning(f"{n_emp} de {len(cam)} jurisdicciones suben a la vez: el compuesto es relativo, así que un movimiento común apunta a un cambio en la escala del cuartil más que en cada provincia.")
-    st.dataframe(cam.round(1).rename(columns={"provincia": "Provincia", "d_iffs_1a": "Δ 1 año", "d_iffs_3a": "Δ 3 años", "posicion_anterior": "Posición anterior",
-                                              "posicion": "Posición", "cambio_cuartil": "Cambio", "dimension_motor": "Subíndice que más se movió"}),
+    st.dataframe(cam.round(1).rename(columns={"provincia": "Provincia", "d_iffs_1a": "Δ en 1 año", "d_iffs_3a": "Δ en 3 años", "posicion_anterior": "Posición anterior",
+                                              "posicion": "Posición", "cambio_cuartil": "Cambio", "dimension_motor": "Subíndice que más se movió", "anomalia": "Anomalía detectada"}),
                  hide_index=True, width="stretch")
     st.subheader("Observaciones inusuales (Isolation Forest, descriptivo)")
-    an_df = panel[panel["anomalia"]].sort_values("anomalia_score", ascending=False)[["provincia", "anio", "IFFS", "d_iffs_1a", "anomalia_score"]].round(2)
+    an_df = panel[panel["anomalia"]].sort_values("anomalia_score", ascending=False)[["provincia", "anio", "IFFS", "d_iffs_1a", "anomalia_score"]].round(2).rename(columns={"provincia":"Provincia", "anio":"Año", "IFFS":"IFFS relativo", "d_iffs_1a":"Cambio anual", "anomalia_score":"Índice de rareza"})
     st.dataframe(an_df, hide_index=True, width="stretch")
     if backtest.get("n"):
         st.caption(f"Extrapolar tendencias no mejora a repetir el último valor (backtest a 1 año, {backtest['n']} casos: error medio {backtest['mae_tendencia']:.1f} vs. {backtest['mae_ingenua']:.1f} puntos). "
@@ -434,14 +505,17 @@ with t_dat:
         st.markdown(f"Compuesto calculado en **{c['n_compuesto']} de {c['n_total']}** provincia-año ({c['pct_compuesto']}%). Faltantes: "
                     + "; ".join(f"**{k}** {v}" for k, v in c["faltantes_compuesto"].items()) + ". Ninguno se imputa.")
     ok = panel.pivot(index="provincia", columns="anio", values="IFFS").notna().astype(int)
+    ok.columns.name = "Año"
     st.plotly_chart(px.imshow(ok, color_continuous_scale=[[0, "#c3c2b7"], [1, "#2a78d6"]], aspect="auto", zmin=0, zmax=1,
                               title="Compuesto disponible (azul) vs. faltante (gris)").update_layout(coloraxis_showscale=False, height=520), width="stretch")
     if "T01_cobertura_por_provincia" in TAB:
-        st.dataframe(TAB["T01_cobertura_por_provincia"].rename(columns={"provincia": "Provincia"}), hide_index=True, width="stretch")
+        cob = TAB["T01_cobertura_por_provincia"].rename(columns={"provincia": "Provincia", "anios_con_compuesto":"Años con compuesto", "anios_solvencia":"Años con solvencia", "anios_liquidez":"Años con liquidez", "anios_estructural":"Años con dimensión estructural", "anios_coyuntural":"Años con dimensión coyuntural", "anios_totales":"Años del panel"})
+        cob = cob.rename(columns={c: c.replace("anios", "Años").replace("anio", "Año") for c in cob.columns if "anio" in c or "anios" in c})
+        st.dataframe(cob, hide_index=True, width="stretch")
     st.subheader("Tabla filtrada")
     cols = ["provincia", "anio", "deuda_sobre_ingresos", "servicio_sobre_ingresos", "rigidez_gastototal", "fragilidad_resultado",
             "S_solvencia", "S_liquidez", "S_estructural", "S_coyuntural", "IFFS", "posicion", "stock_estado"]
-    tabla = panel_f[cols].sort_values(["provincia", "anio"]).round(3)
+    tabla = panel_f[cols].sort_values(["provincia", "anio"]).round(3).rename(columns={"provincia":"Provincia", "anio":"Año", "deuda_sobre_ingresos":"Deuda / ingresos (x)", "servicio_sobre_ingresos":"Servicio / ingresos (x)", "rigidez_gastototal":"Personal / gasto total", "fragilidad_resultado":"Fragilidad del resultado", "S_solvencia":"Solvencia (0-100)", "S_liquidez":"Liquidez (0-100)", "S_estructural":"Estructural (0-100)", "S_coyuntural":"Coyuntural (0-100)", "IFFS":"IFFS relativo (0-100)", "posicion":"Cuartil", "stock_estado":"Estado del dato de stock"})
     st.dataframe(tabla, hide_index=True, width="stretch")
     st.download_button("⬇️ Descargar tabla filtrada (CSV)", tabla.to_csv(index=False).encode("utf-8-sig"),
                        file_name=f"iffs_v2_{periodo[0]}_{periodo[1]}.csv", mime="text/csv")
@@ -455,3 +529,14 @@ with t_dat:
         "- **Saltos de servicio** (Santa Cruz 2024-25, San Luis) resueltos con la identidad stock-flujo: son amortizaciones reales. Solo La Pampa 2024 (stock = 500) no es verificable y no cambia ningún puesto.\n"
         "- Los paneles base son derivados de las fuentes de la DNAP y el BCRA; no se reprocesan aquí.")
     st.caption(f"Metodología: docs/METODOLOGIA.md · Notebook: notebooks/fragilidad_fiscal_provincial.ipynb · Huella del código y datos: {HUELLA[:10]}")
+
+
+with t_fuentes:
+    st.subheader("Cómo leer el monitor")
+    st.markdown("- **Puntaje alto**: la jurisdicción queda más arriba que sus pares ese mismo Año en las variables observadas. No significa insolvencia, riesgo individual ni probabilidad de default.\n- **Cambio de color o de puesto**: puede deberse a un movimiento propio o a cambios de las demás jurisdicciones. Para ver niveles comunes, usá Evolución.\n- **Vacío / s/d**: falta información o la observación se marcó como no confiable. No se imputan valores.\n- **Análisis automático**: perfiles y rarezas son herramientas descriptivas reproducibles; no generan causas ni predicciones.")
+    st.subheader("Fuentes de datos y lecturas metodológicas")
+    st.markdown("**Fuentes principales del panel**")
+    st.markdown("- [DNAP · Deuda pública provincial: evolución de servicios](https://www.argentina.gob.ar/economia/sechacienda/coordinacion-fiscal-provincial/deuda-publica-provincial/evolucion-de-servicios) — series oficiales usadas para stock y servicio.\n- [DNAP · Informe trimestral de deuda provincial](https://www.argentina.gob.ar/economia/finanzas/informe-trimestral-de-deuda-provincial) — contexto y publicaciones de deuda por jurisdicción.\n- [BCRA · estadísticas de capacidad de respuesta](https://www.bcra.gob.ar/) — indicador complementario disponible para una cobertura parcial.")
+    st.markdown("**Lecturas que orientan el diseño; no validan este índice para Argentina**")
+    st.markdown("- [FMI (2022), *How to Manage Fiscal Risks from Subnational Governments*](https://www.imf.org/en/Publications/Fiscal-Affairs-Department-How-To-Notes/Issues/2022/09/01/How-to-Manage-Fiscal-Risks-from-Subnational-Governments-522609) — riesgos fiscales subnacionales, pasivos contingentes y límites de los umbrales universales.\n- [OCDE (2022), *Fiscal Federalism* — información contable y alertas tempranas](https://www.oecd.org/en/publications/fiscal-federalism-2022_201c75b6-en/full-report/component-9.html) — riesgos fuera del balance y necesidad de información completa.\n- [OCDE (2024), *Managing rising subnational fiscal risks*](https://www.oecd.org/en/publications/managing-rising-subnational-fiscal-risks_58437ac8-en.html) — marco comparativo de riesgos subnacionales.")
+    st.caption("No incorporamos notas periodísticas como evidencia del índice: las fuentes abiertas encontradas no agregaban una verificación provincial comparable y trazable. Si una novedad afecta una serie o un evento concreto, debe citarse junto a esa observación y contrastarse con la fuente oficial.")

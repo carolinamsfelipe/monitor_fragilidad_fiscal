@@ -9,6 +9,7 @@ tinta neutra para el compuesto, un solo tono para magnitud.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import matplotlib
@@ -19,6 +20,7 @@ import numpy as np
 import pandas as pd
 
 from . import indicators as ind
+from .formato import es
 
 FIGURES_DIR = Path(__file__).resolve().parent.parent / "outputs" / "figures"
 FIGURES_DIR.mkdir(parents=True, exist_ok=True)
@@ -36,10 +38,31 @@ plt.rcParams.update({
 })
 
 
+_DECIMAL = re.compile(r"^[−-]?\d+\.\d+$")
+
+
+def _coma_decimal(fig):
+    """Textos y ejes del gráfico con coma decimal (castellano)."""
+    fig.canvas.draw()
+    for ax in fig.axes:
+        for eje, lim in ((ax.xaxis, ax.get_xlim), (ax.yaxis, ax.get_ylim)):
+            etiquetas = [t.get_text() for t in eje.get_majorticklabels()]
+            if any(_DECIMAL.match(e) for e in etiquetas):
+                l0 = lim()
+                eje.set_ticks(eje.get_majorticklocs())
+                eje.set_ticklabels([es(e) for e in etiquetas])
+                (ax.set_xlim if eje is ax.xaxis else ax.set_ylim)(l0)
+    for t in fig.findobj(matplotlib.text.Text):
+        txt = t.get_text()
+        if txt and "." in txt and not t.get_text().startswith("$"):
+            t.set_text(es(txt))
+
+
 def _cierre(fig, nombre: str | None, fuente: bool = True):
     if fuente:
         fig.text(0.01, 0.005, FUENTE, fontsize=6.5, color=MUTED, ha="left", va="bottom")
     fig.tight_layout(rect=(0, 0.03 if fuente else 0, 1, 1))
+    _coma_decimal(fig)
     if nombre:
         fig.savefig(FIGURES_DIR / f"{nombre}.png", dpi=170, bbox_inches="tight", facecolor="white")
     return fig
