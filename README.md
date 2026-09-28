@@ -66,7 +66,14 @@ python scripts/generar_entregables.py      # README (bloque de resultados), info
 streamlit run app.py                       # dashboard en http://localhost:8501
 ```
 
-Todas las rutas son relativas a la raíz del proyecto. El dashboard avisa si `outputs/` no corresponde al código y datos actuales (huella MD5).
+Todas las rutas son relativas a la raíz del proyecto. Si los resultados históricos no corresponden al código/datos actuales, el dashboard oculta esa validación y lo explica sin exponer una alerta técnica al público.
+
+### Qué contiene el dashboard y cómo comparar
+
+Las vistas de ranking, evolución, detalle, validación, robustez, perfiles/cambios, simulador y cobertura permanecen porque responden preguntas diferentes y tienen límites explícitos. El mapa completo se conserva como exploración secundaria: sirve para ver patrones temporales, pero no es la forma más sencilla de comparar provincias.
+La pestaña **Comparar** pone pocas jurisdicciones en una misma escala para un Año elegido y muestra al lado los ratios observados. La pestaña **Fuentes y guía** explica cómo leer posiciones relativas y enlaza las fuentes oficiales y lecturas metodológicas. Los títulos, ejes y tablas de pantalla usan “Año” (la columna interna sigue llamándose `anio`).
+
+El análisis automatizado sí incluye aprendizaje automático clásico y reproducible (perfiles k-means y detección descriptiva de observaciones inusuales), además de reglas que redactan únicamente cifras calculadas. No usa IA generativa ni un servicio externo; por eso no inventa causalidad o contexto. La bibliografía del dashboard sirve de contexto metodológico, no constituye evidencia provincial ni una validación externa del IFFS.
 
 ### Publicar el dashboard (Streamlit Community Cloud)
 Subir la carpeta a un repositorio de GitHub (raíz = esta carpeta; `app.py` y `requirements.txt` en la raíz), incluyendo `outputs/tables/`, `outputs/resultados_clave.json`, `data/raw/` y `src/`

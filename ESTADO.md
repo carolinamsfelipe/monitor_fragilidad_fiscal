@@ -34,10 +34,25 @@ no una probabilidad de default; separar evidencia / interpretación / supuesto /
 - La Pampa 2005-2017 sin confirmar (y 2025 sin ejecución): 14 de 504 observaciones sin compuesto.
 - 13 eventos, 12 en el mismo shock, 11 con año convencional → sin validación predictiva; discriminación confundida con acceso al mercado (% de bonos); entre emisoras solo 3 controles.
 - Score relativo: no muestra movimientos comunes (se publica el nivel común). Stock/flujo sobrestima Deuda/Ingresos con inflación alta. Faltan deuda flotante, garantías, vencimientos, moneda (11/24).
-- Saltos de servicio sin resolver (La Pampa 2024, Santa Cruz 2025, San Luis 2014/2022). Paneles base derivados (RAW→panel no reproducible desde el repo).
-- Mezcla menor de separadores decimales (punto/coma) entre salidas automáticas del notebook/dashboard y los textos en castellano.
+- Saltos de servicio: Santa Cruz 2024-25 y San Luis 2014/2022 analizados con identidad stock-flujo (ver `docs/METODOLOGIA.md`); queda La Pampa 2024 sin verificación. Los paneles base son derivados (RAW→panel no reproducible desde el repo).
+
+## Actualización de producto (2026-09-25)
+- ✅ `app.py`: se agregó Comparar (selección de Año y pocas jurisdicciones, subíndices + ratios originales); mapa de calor queda como exploración desplegable; las tablas de pantalla usan coma decimal y `Año`; explicación breve sobre posiciones relativas, faltantes y análisis automatizado.
+- ✅ Se agregó Fuentes y guía, con enlaces DNAP, FMI y OCDE; se aclara que la bibliografía orienta el diseño, no valida el IFFS para Argentina. El análisis automático existente sí incluye ML descriptivo (k-means e Isolation Forest) y reglas; no es IA generativa ni servicio externo.
+- ✅ Se regeneró `outputs/` (`huella deabd9a28e1abd8ea5f49a7c971c24c2`). La advertencia técnica de desincronización ahora es discreta, y la validación/robustez se oculta si la huella no coincide.
+- ✅ `README.md` explica por qué se conservan las vistas y cómo usar la comparación.
+- ✅ Verificado: `AppTest` (11 pestañas, 0 excepciones), `scripts/verificar_consistencia.py` (README, metodología, notebook, informe de 3 páginas y presentación de 9 diapositivas consistentes), `pytest` (19 pasaron).
+- ⏳ Estos cambios están en la carpeta de trabajo, no en el sitio publicado: esta carpeta no contiene `.git` ni un remoto configurado, así que no fue posible enviar los archivos a GitHub desde aquí.
+
+## Actualización 2026-09-26
+- ✅ Coma decimal unificada: `print`/tablas del notebook, celdas de texto y tablas del dashboard, ejes y textos de las figuras matplotlib, ejes/hover de Plotly. Se corrigió además un defecto: las tablas del dashboard mostraban el año como "2.020" (separador de miles).
+- ✅ Saltos de servicio: ya estaban resueltos en Fase 2 (identidad stock-flujo); solo La Pampa 2024 (stock 500, fuente oficial lo informa así) es inverificable y no cambia puestos.
+- ✅ Regenerado todo (huella 139aef89…); 19 tests OK, notebook sin errores, consistencia OK, AppTest 0 excepciones.
+- ✅ Carpeta lista para subir al repo: `~/Desktop/subir_a_github/` (src/, app.py, requirements.txt, .streamlit/, data/raw/, outputs/tables/, outputs/resultados_clave.json). NO subida.
+
+- ✅ 2026-09-26: `docs/PEDIDO_DNAP_email.md` (borrador, sin enviar) y `docs/carga_manual/carga_manual_deuda_provincial.xlsx` (plantilla: moneda 2014-2025 × 24 provincias con lo ya cargado en gris; hojas Vencimientos y Flotante vacías). La moneda existente cubre solo 11 provincias y 2014-2020.
 
 ## Pendientes
-1. ⏳ **Publicar el dashboard:** el sitio https://monitor-fragilidad-fiscal.streamlit.app sigue mostrando la versión anterior (con La Pampa ÷1.000) hasta que se suban los archivos al repo de GitHub. NO se subió nada sin permiso. Debe incluir `src/`, `app.py`, `requirements.txt`, `data/raw/`, `outputs/tables/`, `outputs/resultados_clave.json`.
+1. ⏳ **Publicar el dashboard:** subir la versión de esta carpeta al repositorio GitHub conectado a Streamlit Community Cloud; el repositorio no está disponible en esta copia local.
 2. ⏳ Confirmar con la DNAP las unidades del stock de La Pampa 2005-2017 (si se confirma, cambiar el tratamiento principal y volver a correr todo).
-3. ⏳ Resolver los saltos de servicio pendientes; incorporar deuda flotante, vencimientos y moneda; sumar eventos futuros para validación fuera de muestra.
+3. ⏳ Incorporar deuda flotante, garantías, vencimientos y composición por moneda con fuentes comparables; sumar eventos futuros para validación fuera de muestra.
