@@ -315,7 +315,7 @@ def bloque_H(panel_maestro: pd.DataFrame) -> None:
     chk("CABA: hoja `CABA` (miles) / hoja `Millones` = 1.000 en todos los años", True)
     caba = p[p.provincia == "CABA"].servicio_sobre_ingresos
     chk("CABA servicio/ingresos dentro del rango del resto (<= máx del resto)", bool(caba.max() <= p[p.provincia != "CABA"].servicio_sobre_ingresos.max()),
-        f"(CABA máx {caba.max():.3f})")
+        f"(CABA máx {caba.max():.3f})".replace(".", ","))
     pd.DataFrame(filas).to_csv(OUT / "H1_controles_integridad.csv", index=False)
 
 
