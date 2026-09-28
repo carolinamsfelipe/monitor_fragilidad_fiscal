@@ -123,10 +123,18 @@ from src.formato import es
 def Markdown(texto):    # Markdown con formato castellano (coma decimal) para los textos armados con cifras del JSON
     return _Markdown(es(texto))
 
+import builtins
+
+def print(*args, **kwargs):    # salidas de texto con coma decimal (castellano); los datos y tablas no se tocan
+    builtins.print(*[es(a) if isinstance(a, str) else es(str(a)) if isinstance(a, (list, dict, tuple, float)) else a for a in args], **kwargs)
+
+def _num_es(x):                # tablas: coma decimal y punto de miles
+    return f"{x:,.3f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
 np.random.seed(42)
 pd.set_option("display.max_columns", 40)
 pd.set_option("display.width", 150)
-pd.set_option("display.float_format", lambda x: f"{x:,.3f}")
+pd.set_option("display.float_format", _num_es)
 FIG = PROJECT_ROOT / "outputs" / "figures"
 TAB = PROJECT_ROOT / "outputs" / "tables"
 
@@ -430,7 +438,7 @@ md("### 8.3 Rezagos T−1 … T−5 y sensibilidad al año ancla")
 code("""
 rez = tabla("T08_discriminacion_por_rezago")
 rz = rez[rez.medida.isin(["IFFS", "solvencia", "liquidez", "bonos_pct", "IFFS_v1"])].copy()
-rz["AUC [IC95%]"] = rz.apply(lambda r: f"{r['auc']:.2f} [{r['ic95_inf']:.2f}–{r['ic95_sup']:.2f}]", axis=1)
+rz["AUC [IC95%]"] = rz.apply(lambda r: es(f"{r['auc']:.2f} [{r['ic95_inf']:.2f}–{r['ic95_sup']:.2f}]"), axis=1)
 display(rz.pivot_table(index=["ancla", "medida"], columns="rezago", values="AUC [IC95%]", aggfunc="first"))
 print("Ancla 2020 = convención; ancla alternativa = 2021 para los eventos de fecha ambigua.")
 """)
