@@ -1,0 +1,24 @@
+provincia,IFFS_B,d_iffs_1a,d_iffs_3a,nivel_anterior,nivel_alerta,cambio_nivel,dimension_motor,anomalia
+Mendoza,53.77604166666667,18.880208333333336,15.755208333333336,Medio,Medio,Sin cambio,Desempeño fiscal,False
+Chubut,72.91666666666667,16.66666666666667,2.734375000000014,Medio,Alto,Empeoró,Desempeño fiscal,False
+Corrientes,37.109375,13.020833333333332,17.447916666666668,Bajo,Medio,Empeoró,Desempeño fiscal,False
+La Rioja,57.29166666666667,12.630208333333336,17.968750000000007,Medio,Medio,Sin cambio,Desempeño fiscal,False
+Tierra del Fuego,57.94270833333333,12.109375,10.026041666666664,Medio,Medio,Sin cambio,Desempeño fiscal,False
+CABA,41.40625,9.765625000000004,2.9947916666666643,Bajo,Medio,Empeoró,Desempeño fiscal,False
+Santa Fe,35.67708333333333,9.374999999999993,8.984374999999996,Bajo,Medio,Empeoró,Solvencia,False
+Santa Cruz,42.708333333333336,8.463541666666671,9.895833333333336,Medio,Medio,Sin cambio,Desempeño fiscal,False
+San Juan,40.755208333333336,7.682291666666671,4.036458333333336,Medio,Medio,Sin cambio,Desempeño fiscal,False
+Jujuy,57.942708333333336,5.989583333333343,-1.8229166666666643,Medio,Medio,Sin cambio,Desempeño fiscal,False
+Neuquén,49.088541666666664,5.46875,-11.588541666666679,Medio,Medio,Sin cambio,Desempeño fiscal,False
+Tucumán,41.927083333333336,5.46875,-1.0416666666666572,Medio,Medio,Sin cambio,Desempeño fiscal,False
+Misiones,23.4375,5.078125,3.125,Bajo,Bajo,Sin cambio,Desempeño fiscal,False
+San Luis,17.317708333333332,4.817708333333332,-6.770833333333336,Bajo,Bajo,Sin cambio,Desempeño fiscal,False
+Formosa,19.140625,4.036458333333332,1.953125,Bajo,Bajo,Sin cambio,Rigidez del gasto,False
+Córdoba,36.84895833333333,3.124999999999993,10.416666666666664,Medio,Medio,Sin cambio,Desempeño fiscal,False
+Entre Ríos,54.42708333333334,2.864583333333343,14.322916666666679,Medio,Medio,Sin cambio,Desempeño fiscal,False
+Río Negro,64.84375,2.343749999999993,-4.036458333333329,Medio,Medio,Sin cambio,Desempeño fiscal,False
+Chaco,62.109375,2.213541666666657,23.697916666666664,Medio,Medio,Sin cambio,Liquidez,False
+Catamarca,37.109375,0.6510416666666714,6.640625,Medio,Medio,Sin cambio,Rigidez del gasto,False
+Buenos Aires,58.59375,-0.2604166666666643,7.421875,Medio,Medio,Sin cambio,Rigidez del gasto,False
+Salta,54.166666666666664,-4.036458333333329,3.90625,Medio,Medio,Sin cambio,Liquidez,False
+Santiago del  Estero,6.901041666666666,-4.166666666666668,1.5624999999999991,Bajo,Bajo,Sin cambio,Rigidez del gasto,False

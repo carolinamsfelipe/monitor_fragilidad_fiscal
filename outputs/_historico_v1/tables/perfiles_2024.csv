@@ -1,0 +1,25 @@
+provincia,perfil_nombre,IFFS_B,nivel_alerta
+Catamarca,Perfil 1 · Tensión en desempeño fiscal,36.45833333333333,Medio
+Santa Fe,Perfil 1 · Tensión en desempeño fiscal,26.302083333333336,Bajo
+Corrientes,Perfil 1 · Tensión en desempeño fiscal,24.088541666666668,Bajo
+La Pampa,Perfil 1 · Tensión en desempeño fiscal,21.614583333333332,Bajo
+Misiones,Perfil 1 · Tensión en desempeño fiscal,18.359375,Bajo
+Formosa,Perfil 1 · Tensión en desempeño fiscal,15.104166666666668,Bajo
+Chubut,"Perfil 2 · Intermedio, sin dimensión dominante",56.25,Medio
+Jujuy,"Perfil 2 · Intermedio, sin dimensión dominante",51.95312499999999,Medio
+La Rioja,"Perfil 2 · Intermedio, sin dimensión dominante",44.661458333333336,Medio
+Neuquén,"Perfil 2 · Intermedio, sin dimensión dominante",43.619791666666664,Medio
+Tucumán,"Perfil 2 · Intermedio, sin dimensión dominante",36.458333333333336,Medio
+Mendoza,"Perfil 2 · Intermedio, sin dimensión dominante",34.895833333333336,Medio
+Santa Cruz,"Perfil 2 · Intermedio, sin dimensión dominante",34.244791666666664,Medio
+Córdoba,"Perfil 2 · Intermedio, sin dimensión dominante",33.723958333333336,Medio
+San Juan,"Perfil 2 · Intermedio, sin dimensión dominante",33.072916666666664,Medio
+CABA,"Perfil 2 · Intermedio, sin dimensión dominante",31.640624999999996,Bajo
+San Luis,"Perfil 2 · Intermedio, sin dimensión dominante",12.5,Bajo
+Santiago del  Estero,"Perfil 2 · Intermedio, sin dimensión dominante",11.067708333333334,Bajo
+Río Negro,Perfil 3 · Tensión en rigidez del gasto y desempeño fiscal,62.50000000000001,Medio
+Chaco,Perfil 3 · Tensión en rigidez del gasto y desempeño fiscal,59.89583333333334,Medio
+Salta,Perfil 3 · Tensión en rigidez del gasto y desempeño fiscal,58.20312499999999,Medio
+Entre Ríos,Perfil 3 · Tensión en rigidez del gasto y desempeño fiscal,51.5625,Medio
+Tierra del Fuego,Perfil 3 · Tensión en rigidez del gasto y desempeño fiscal,45.83333333333333,Medio
+Buenos Aires,Perfil 4 · Tensión en liquidez y solvencia,58.854166666666664,Medio

@@ -1,0 +1,15 @@
+control,resultado,detalle
+Grilla completa 24 jurisdicciones x 21 años,OK,(504 filas)
+"Sin duplicados (provincia, año)",OK,
+Sin duplicados en panel_fiscal_benchmarks.csv,OK,(0)
+Sin duplicados en deuda_ratios_provincia_anio.csv,OK,(0)
+Sin duplicados en capacidad_respuesta_panel.csv,OK,(0)
+Sin valores negativos en deuda_sobre_ingresos,OK,
+Sin valores negativos en servicio_sobre_ingresos,OK,
+Sin valores negativos en rigidez_gastototal,OK,
+"Rigidez del gasto en [0,1]",OK,
+Ingresos corrientes estrictamente positivos donde hay dato,OK,
+Stock del panel de ratios = deuda_total_sin_flotante del panel por acreedor,OK,(dif. relativa máx 0.0e+00)
+Total de deuda = suma de las 7 categorías por acreedor (incluye 'consolidada'),OK,(dif. relativa máx 5.7e-16)
+CABA: hoja `CABA` (miles) / hoja `Millones` = 1.000 en todos los años,OK,
+CABA servicio/ingresos dentro del rango del resto (<= máx del resto),OK,"(CABA máx 0,153)"

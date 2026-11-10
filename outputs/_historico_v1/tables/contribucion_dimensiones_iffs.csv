@@ -1,0 +1,5 @@
+dimension,variable,desvio_percentil,correlacion_con_IFFS_B
+Solvencia (Deuda / Ingresos),deuda_sobre_ingresos,26.53139689809116,0.7491927223509609
+Liquidez (Servicio deuda / Ingresos),servicio_sobre_ingresos,28.02701348018336,0.7574619540923814
+Rigidez del gasto (Personal / Gasto total),rigidez_gastototal,29.39340371136245,0.6327718451638233
+Desempeño fiscal (-Resultado / Ingresos),fragilidad_resultado,29.191730148845178,0.5467179923539697

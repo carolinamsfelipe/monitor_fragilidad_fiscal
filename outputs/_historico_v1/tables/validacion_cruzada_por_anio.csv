@@ -1,0 +1,5 @@
+fold,n_test,eventos_test,pr_auc,nota
+0,120.0,12.0,0.13563299359236297,
+1,,,,"sin eventos positivos en train o test, PR-AUC no definida"
+2,,,,"sin eventos positivos en train o test, PR-AUC no definida"
+3,119.0,1.0,0.010638297872340425,

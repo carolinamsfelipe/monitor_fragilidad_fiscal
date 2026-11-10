@@ -1,0 +1,6 @@
+,deuda_sobre_ingresos,servicio_sobre_ingresos,rigidez_gastototal,fragilidad_resultado,dependencia_transferencias
+deuda_sobre_ingresos,1.0,0.895,0.383,0.359,-0.09
+servicio_sobre_ingresos,0.895,1.0,0.586,0.454,-0.35
+rigidez_gastototal,0.383,0.586,1.0,0.372,-0.177
+fragilidad_resultado,0.359,0.454,0.372,1.0,-0.553
+dependencia_transferencias,-0.09,-0.35,-0.177,-0.553,1.0

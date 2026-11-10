@@ -1,0 +1,7 @@
+variable,n,pct_missing,mediana,p95,maximo,max_sobre_mediana,asimetria,asimetria_sin_LaPampa,ICC_entre_provincias,AR1_intra_provincia
+deuda_sobre_ingresos,490,2.8,0.309,1.158,2.138,6.912,1.705,1.705,0.302,0.905
+servicio_sobre_ingresos,503,0.2,0.038,0.14,0.253,6.594,1.198,1.168,0.282,0.813
+rigidez_gastototal,503,0.2,0.45,0.566,0.655,1.458,0.036,-0.01,0.636,0.789
+fragilidad_resultado,503,0.2,0.004,0.111,0.244,67.758,-0.095,-0.034,0.219,0.355
+dependencia_transferencias,503,0.2,0.585,0.811,0.866,1.48,-0.608,-0.643,0.968,0.649
+IFFS,490,2.8,51.479,88.194,97.886,1.901,-0.165,-0.177,0.721,0.858
